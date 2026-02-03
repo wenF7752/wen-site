@@ -1,6 +1,12 @@
 <script lang="ts">
     import Button from '../ui/Button.svelte';
+    import type { User } from '@supabase/supabase-js';
 
+    interface Props {
+        user?: User | null;
+    }
+
+    let { user }: Props = $props();
     let isMenuOpen = $state(false);
 
     const toggleMenu = () => isMenuOpen = !isMenuOpen;
@@ -16,6 +22,9 @@
         <div class="hidden md:flex items-center gap-8">
             <a href="#projects" class="text-surface-600 hover:text-brand-primary font-medium transition-colors">Projects</a>
             <a href="#skills" class="text-surface-600 hover:text-brand-primary font-medium transition-colors">Skills</a>
+            {#if user}
+                <a href="/admin" class="text-surface-600 hover:text-brand-primary font-medium transition-colors">Admin</a>
+            {/if}
             <Button variant="outline" href="#contact">Contact</Button>
         </div>
 

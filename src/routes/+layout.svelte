@@ -3,11 +3,11 @@
 	import Navbar from '$lib/components/sections/Navbar.svelte';
 	import Footer from '$lib/components/sections/Footer.svelte';
 
-	let { children } = $props();
+	let { children, data } = $props();
 </script>
 
 <div class="flex flex-col min-h-screen">
-	<Navbar />
+	<Navbar user={data.user} />
 	<main class="flex-grow">
 		{@render children()}
 	</main>
