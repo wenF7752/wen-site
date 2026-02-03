@@ -1,5 +1,5 @@
 <script lang="ts">
-    import Card from './ui/Card.svelte';
+    import Card from './Card.svelte';
     import type { Project } from '$lib/data/projects';
 
     interface Props {
