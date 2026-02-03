@@ -1,6 +1,27 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+/* Custom theme using CSS variables (TailwindCSS v4 approach) */
+@theme {
+	--font-sans: 'Inter', sans-serif;
+	--font-mono: 'JetBrains Mono', monospace;
+
+	/* Brand colors */
+	--color-brand-primary: #047857;
+	--color-brand-accent: #2563EB;
+
+	/* Surface colors */
+	--color-surface-50: #F8FAFC;
+	--color-surface-100: #F1F5F9;
+	--color-surface-200: #E2E8F0;
+	--color-surface-300: #CBD5E1;
+	--color-surface-400: #94A3B8;
+	--color-surface-500: #64748B;
+	--color-surface-600: #475569;
+	--color-surface-700: #334155;
+	--color-surface-800: #1E293B;
+	--color-surface-900: #0F172A;
+	--color-surface-950: #020617;
+}
 
 @layer base {
 	body {
