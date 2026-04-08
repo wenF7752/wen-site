@@ -1,7 +1,7 @@
 <script lang="ts">
 </script>
 
-<footer class="bg-surface-900 text-surface-400 py-16">
+<footer id="contact" class="bg-surface-900 text-surface-400 py-16">
     <div class="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-8">
         <div>
             <span class="text-2xl font-bold text-white tracking-tight">WEN<span class="text-brand-accent">.</span></span>

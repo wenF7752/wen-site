@@ -23,7 +23,7 @@
             </p>
             <div class="flex flex-col sm:flex-row gap-4 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
                 <Button variant="primary" href="#projects">View Projects</Button>
-                <Button variant="outline" href="#blog">Read Journal</Button>
+                <Button variant="outline" href="#skills">View Skills</Button>
             </div>
         </div>
     </div>
