@@ -16,7 +16,8 @@
 		"@sveltejs/adapter-static": "^3.0.10",
 		"@sveltejs/kit": "^2.50.1",
 		"@sveltejs/vite-plugin-svelte": "^6.2.4",
-		"@tailwindcss/vite": "^4.1.18",
+		"@types/dompurify": "^3.0.5",
+		"@types/marked": "^5.0.2",
 		"autoprefixer": "^10.4.24",
 		"lucide-svelte": "^0.563.0",
 		"postcss": "^8.5.6",
@@ -25,5 +26,12 @@
 		"tailwindcss": "^4.1.18",
 		"typescript": "^5.9.3",
 		"vite": "^7.3.1"
+	},
+	"dependencies": {
+		"@supabase/ssr": "^0.8.0",
+		"@supabase/supabase-js": "^2.94.0",
+		"dompurify": "^3.3.1",
+		"highlight.js": "^11.11.1",
+		"marked": "^17.0.1"
 	}
 }
