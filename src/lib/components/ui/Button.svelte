@@ -18,7 +18,7 @@
         ghost: "hover:bg-surface-100 text-surface-600"
     };
 
-    const classes = `${baseClass} ${variants[variant]}`;
+    const classes = $derived(`${baseClass} ${variants[variant]}`);
 </script>
 
 {#if href}
