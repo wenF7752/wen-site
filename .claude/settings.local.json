@@ -1,0 +1,17 @@
+{
+	"hooks": {
+		"PostToolUse": [
+			{
+				"matcher": "Edit|Write",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "bash .claude/hooks/post-edit-lint.sh",
+						"timeout": 30,
+						"statusMessage": "Running linter on changed file..."
+					}
+				]
+			}
+		]
+	}
+}
