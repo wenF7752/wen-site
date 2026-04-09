@@ -11,8 +11,8 @@ export default {
 			},
 			colors: {
 				brand: {
-					primary: '#047857', // Deep Emerald
-					accent: '#2563EB' // Electric Blue
+					primary: '#10b981', // Emerald (bright for dark mode)
+					accent: '#3b82f6' // Blue (bright for dark mode)
 				},
 				surface: {
 					50: '#F8FAFC',

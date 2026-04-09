@@ -4,19 +4,29 @@ This file provides guidance to Claude Code when working with code in this reposi
 
 ## Project Overview
 
-Static portfolio site for Wen (Senior Software Engineer & Trader). Built with **SvelteKit 2.50.1**, **Svelte 5.48.2** (runes API), **TypeScript 5.9.3** (strict mode), and **Tailwind CSS v4.1.18**. Compiled to static HTML via `@sveltejs/adapter-static`. No backend, no database, no API routes. Node 22 required (enforced via `.nvmrc` + `engine-strict=true` in `.npmrc`).
+Static portfolio site for Wen (Senior Software Engineer & Trader). Built with **SvelteKit 2.50.1**, **Svelte 5.48.2** (runes API), **TypeScript 5.9.3** (strict mode), and **Tailwind CSS v4.1.18**. Compiled to static HTML via `@sveltejs/adapter-static`. Deployed to **Vercel** (build output: `build/`, configured in `vercel.json`). No backend, no database, no API routes. Node 22 required (enforced via `.nvmrc` + `engine-strict=true` in `.npmrc`).
+
+**Note:** `.mcp.json` and `.env` contain Supabase config from an earlier development phase. These are not used by the current codebase (Supabase dependencies were removed in commit 42a1fd8). Do not add Supabase imports or server-side logic based on their presence.
 
 ## Common Commands
 
-| Command | What it does |
-|---|---|
-| `npm run dev` | Start Vite dev server with HMR |
-| `npm run build` | Production build (static HTML output) |
-| `npm run preview` | Serve the production build locally |
-| `npm run check` | Run `svelte-kit sync` then `svelte-check` (type checking) |
-| `npm run check:watch` | Same as check but in watch mode |
+| Command                | What it does                                              |
+| ---------------------- | --------------------------------------------------------- |
+| `npm run dev`          | Start Vite dev server with HMR                            |
+| `npm run build`        | Production build (static HTML output)                     |
+| `npm run preview`      | Serve the production build locally                        |
+| `npm run check`        | Run `svelte-kit sync` then `svelte-check` (type checking) |
+| `npm run check:watch`  | Same as check but in watch mode                           |
+| `npm run lint`         | Run ESLint on all files                                   |
+| `npm run lint:fix`     | Run ESLint with auto-fix                                  |
+| `npm run format`       | Format all files with Prettier                            |
+| `npm run format:check` | Check formatting without writing                          |
 
-No linter (ESLint/Prettier), no test runner, no git hooks, no CI pipeline configured.
+No test runner, no git hooks, no CI pipeline configured. `lucide-svelte` is in devDependencies but currently unused (Navbar uses inline SVGs).
+
+**Linting:** ESLint 9 flat config (`eslint.config.js`) with `typescript-eslint` and `eslint-plugin-svelte`. The `svelte/no-navigation-without-resolve` rule is disabled (static site, no SvelteKit routing). A PostToolUse hook runs ESLint on every edited `.ts`, `.js`, or `.svelte` file automatically.
+
+**Formatting:** Prettier with `prettier-plugin-svelte` and `prettier-plugin-tailwindcss` (auto-sorts Tailwind classes). Config uses tabs, single quotes, no trailing commas, 100 char width. See `.prettierrc`.
 
 ## Architecture
 
@@ -24,12 +34,12 @@ No linter (ESLint/Prettier), no test runner, no git hooks, no CI pipeline config
 
 This project uses Svelte 5's runes API exclusively. Do not use Svelte 4 reactive syntax.
 
-| Pattern | Correct (Svelte 5) | Wrong (Svelte 4) |
-|---|---|---|
-| Reactive state | `let x = $state(false)` | `let x = false` with `$:` |
-| Props | `let { foo } = $props()` | `export let foo` |
-| Children | `children: Snippet` + `{@render children()}` | `<slot />` |
-| Derived | `let y = $derived(x + 1)` | `$: y = x + 1` |
+| Pattern        | Correct (Svelte 5)                           | Wrong (Svelte 4)          |
+| -------------- | -------------------------------------------- | ------------------------- |
+| Reactive state | `let x = $state(false)`                      | `let x = false` with `$:` |
+| Props          | `let { foo } = $props()`                     | `export let foo`          |
+| Children       | `children: Snippet` + `{@render children()}` | `<slot />`                |
+| Derived        | `let y = $derived(x + 1)`                    | `$: y = x + 1`            |
 
 Reference: every component in `src/lib/components/` uses this pattern.
 
@@ -67,15 +77,15 @@ Every component defines a `Props` interface, destructures with `$props()`, and u
 
 ```svelte
 <script lang="ts">
-    import { type Snippet } from 'svelte';
+	import { type Snippet } from 'svelte';
 
-    interface Props {
-        variant?: 'primary' | 'outline';
-        children: Snippet;
-        [key: string]: any;  // rest props for HTML attributes
-    }
+	interface Props {
+		variant?: 'primary' | 'outline';
+		children: Snippet;
+		[key: string]: any; // rest props for HTML attributes
+	}
 
-    let { variant = 'primary', children, ...rest }: Props = $props();
+	let { variant = 'primary', children, ...rest }: Props = $props();
 </script>
 ```
 
@@ -98,17 +108,23 @@ Static data lives in `src/lib/data/` as typed const arrays with exported interfa
 Both files define identical colors and fonts. If you change theme values, update both files.
 
 **Design tokens:**
+
 - Brand primary: `brand-primary` (#047857, deep emerald)
 - Brand accent: `brand-accent` (#2563EB, electric blue)
 - Surface palette: `surface-50` through `surface-950` (slate grayscale)
 - Fonts: Inter (sans), JetBrains Mono (mono)
 
 **Component classes** are defined in `app.css` `@layer components`:
+
 - `.glass-nav` - Sticky navbar with backdrop blur
 - `.btn` / `.btn-primary` / `.btn-secondary` / `.btn-outline` - Button variants
 - `.card` - Card with border, rounded corners, hover shadow
 
+**Gotcha:** The `Button.svelte` Props interface accepts `variant: 'ghost'` but there is no `.btn-ghost` class in `app.css`. Adding a ghost variant requires defining `.btn-ghost` in the component layer.
+
 **Base layer** in `app.css` sets body styles and responsive heading sizes (h1: `text-4xl md:text-6xl`).
+
+**Scoped CSS:** The Hero component (`sections/Hero.svelte`) defines custom `@keyframes` animations (`fade-in`, `slide-in-bottom`) and utility classes (`.animate-in`, `.delay-100`, `.delay-200`) in a scoped `<style>` block, not in `app.css`.
 
 Do not use hardcoded color values. Always use the `brand-*` or `surface-*` tokens.
 
@@ -116,21 +132,30 @@ Do not use hardcoded color values. Always use the `brand-*` or `surface-*` token
 
 Single-page site. Only one route exists:
 
-| Route | File | Content |
-|---|---|---|
-| `/` | `src/routes/+page.svelte` | Hero + ProjectGrid + Skills |
+| Route | File                      | Content                     |
+| ----- | ------------------------- | --------------------------- |
+| `/`   | `src/routes/+page.svelte` | Hero + ProjectGrid + Skills |
 
 Layout (`+layout.svelte`) wraps all pages with Navbar and Footer. All pages are prerendered (`export const prerender = true` in `+layout.ts`). The static adapter generates a `404.html` fallback.
 
 ### Fonts
 
-Loaded via Google Fonts CDN in `src/app.html`. Two fonts:
-- **Inter** (weights 300-800) for body text
-- **JetBrains Mono** (weights 400-700) for monospace
+Loaded via Google Fonts CDN in `src/app.html` with preconnect optimization. Two fonts:
+
+- **Inter** (weights 400, 600, 700) for body text
+- **JetBrains Mono** (weight 500) for monospace
 
 ## File & Folder Structure
 
 ```
+.env                   Supabase config (legacy, unused by current code)
+.mcp.json              MCP server config (Supabase, legacy)
+.npmrc                 engine-strict=true
+.nvmrc                 Node 22
+.prettierrc            Prettier config (tabs, single quotes, Svelte + Tailwind plugins)
+.prettierignore        Files excluded from formatting
+eslint.config.js       ESLint 9 flat config (TS + Svelte)
+vercel.json            Vercel deployment config (outputDirectory: "build")
 src/
   app.css              Global styles: Tailwind v4 @theme, base layer, component classes
   app.d.ts             SvelteKit type declarations
@@ -164,4 +189,3 @@ static/
 - Static site only. Do not add server-side logic, API routes, or `+page.server.ts` files.
 
 ## Learned Rules
-

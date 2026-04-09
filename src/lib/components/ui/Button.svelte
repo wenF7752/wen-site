@@ -1,32 +1,33 @@
 <script lang="ts">
-    import { type Snippet } from 'svelte';
+	import { type Snippet } from 'svelte';
 
-    interface Props {
-        variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
-        href?: string;
-        children: Snippet;
-        [key: string]: any;
-    }
+	interface Props {
+		variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
+		href?: string;
+		children: Snippet;
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+		[key: string]: any;
+	}
 
-    let { variant = 'primary', href, children, ...rest }: Props = $props();
+	let { variant = 'primary', href, children, ...rest }: Props = $props();
 
-    const baseClass = "btn";
-    const variants = {
-        primary: "btn-primary",
-        secondary: "btn-secondary",
-        outline: "btn-outline",
-        ghost: "hover:bg-surface-100 text-surface-600"
-    };
+	const baseClass = 'btn';
+	const variants = {
+		primary: 'btn-primary',
+		secondary: 'btn-secondary',
+		outline: 'btn-outline',
+		ghost: 'hover:bg-surface-100 text-surface-600'
+	};
 
-    const classes = $derived(`${baseClass} ${variants[variant]}`);
+	const classes = $derived(`${baseClass} ${variants[variant]}`);
 </script>
 
 {#if href}
-    <a {href} class={classes} {...rest}>
-        {@render children()}
-    </a>
+	<a {href} class={classes} {...rest}>
+		{@render children()}
+	</a>
 {:else}
-    <button class={classes} {...rest}>
-        {@render children()}
-    </button>
+	<button class={classes} {...rest}>
+		{@render children()}
+	</button>
 {/if}
