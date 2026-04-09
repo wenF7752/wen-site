@@ -2,6 +2,7 @@
 	import '../app.css';
 	import Navbar from '$lib/components/sections/Navbar.svelte';
 	import Footer from '$lib/components/sections/Footer.svelte';
+	import ChatWidget from '$lib/components/ui/ChatWidget.svelte';
 
 	let { children } = $props();
 </script>
@@ -13,3 +14,5 @@
 	</main>
 	<Footer />
 </div>
+
+<ChatWidget />

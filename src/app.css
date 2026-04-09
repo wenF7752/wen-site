@@ -1,13 +1,12 @@
 @import 'tailwindcss';
 
-/* Custom theme using CSS variables (TailwindCSS v4 approach) */
 @theme {
 	--font-sans: 'Inter', sans-serif;
 	--font-mono: 'JetBrains Mono', monospace;
 
-	/* Brand colors */
-	--color-brand-primary: #047857;
-	--color-brand-accent: #2563eb;
+	/* Brand colors - brightened for dark mode visibility */
+	--color-brand-primary: #10b981;
+	--color-brand-accent: #3b82f6;
 
 	/* Surface colors */
 	--color-surface-50: #f8fafc;
@@ -20,12 +19,37 @@
 	--color-surface-700: #334155;
 	--color-surface-800: #1e293b;
 	--color-surface-900: #0f172a;
-	--color-surface-950: #020617;
+	--color-surface-950: #030712;
 }
 
 @layer base {
+	html {
+		scroll-behavior: smooth;
+	}
+
 	body {
-		@apply bg-surface-50 font-sans text-surface-600;
+		@apply bg-surface-950 font-sans text-surface-400 antialiased;
+	}
+
+	/* Subtle dot grid texture */
+	body::before {
+		content: '';
+		position: fixed;
+		inset: 0;
+		z-index: 0;
+		pointer-events: none;
+		background-image: radial-gradient(
+			circle at 1px 1px,
+			rgba(255, 255, 255, 0.03) 1px,
+			transparent 0
+		);
+		background-size: 40px 40px;
+	}
+
+	/* Custom selection */
+	::selection {
+		background: rgba(16, 185, 129, 0.25);
+		color: #f8fafc;
 	}
 
 	h1,
@@ -34,11 +58,11 @@
 	h4,
 	h5,
 	h6 {
-		@apply font-bold text-surface-900;
+		@apply font-bold text-surface-50;
 	}
 
 	h1 {
-		@apply text-4xl md:text-6xl;
+		@apply text-4xl leading-[1.05] md:text-6xl lg:text-7xl;
 	}
 	h2 {
 		@apply text-3xl md:text-5xl;
@@ -49,27 +73,48 @@
 }
 
 @layer components {
+	/* Glass navigation */
 	.glass-nav {
-		@apply sticky top-0 z-50 border-b border-surface-200 bg-white/80 backdrop-blur-md;
+		@apply sticky top-0 z-50 border-b border-white/5 bg-surface-950/80 backdrop-blur-xl;
 	}
 
+	/* Buttons */
 	.btn {
-		@apply inline-flex items-center justify-center rounded-lg px-6 py-3 font-semibold transition-all duration-200 focus:ring-2 focus:ring-offset-2 focus:outline-none;
+		@apply inline-flex cursor-pointer items-center justify-center rounded-lg px-6 py-3 font-semibold transition-all duration-200 focus:ring-2 focus:ring-offset-2 focus:ring-offset-surface-950 focus:outline-none;
 	}
 
 	.btn-primary {
-		@apply bg-brand-primary text-white hover:-translate-y-0.5 hover:bg-emerald-800 focus:ring-brand-primary;
+		@apply bg-brand-primary text-surface-950 hover:-translate-y-0.5 hover:shadow-[0_0_24px_rgba(16,185,129,0.35)] focus:ring-brand-primary;
 	}
 
 	.btn-secondary {
-		@apply bg-brand-accent text-white hover:-translate-y-0.5 hover:bg-blue-700 focus:ring-brand-accent;
+		@apply bg-brand-accent text-white hover:-translate-y-0.5 hover:shadow-[0_0_24px_rgba(59,130,246,0.35)] focus:ring-brand-accent;
 	}
 
 	.btn-outline {
-		@apply border-2 border-surface-200 text-surface-700 hover:border-surface-300 hover:bg-surface-100 focus:ring-surface-400;
+		@apply border border-surface-700 text-surface-300 hover:border-brand-primary hover:text-brand-primary focus:ring-brand-primary;
 	}
 
+	/* Glass card */
 	.card {
-		@apply rounded-xl border border-surface-200 bg-white transition-all duration-300 hover:shadow-lg;
+		@apply rounded-xl border border-white/[0.06] bg-white/[0.02] transition-all duration-300 hover:border-white/[0.12] hover:bg-white/[0.04] hover:shadow-[0_8px_32px_rgba(0,0,0,0.4)];
+	}
+
+	/* Scroll reveal */
+	.reveal {
+		opacity: 0;
+		transform: translateY(1.5rem);
+		transition:
+			opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+			transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+	}
+	.reveal.revealed {
+		opacity: 1;
+		transform: translateY(0);
+	}
+
+	/* Gradient text utility */
+	.text-gradient {
+		@apply bg-gradient-to-r from-brand-primary to-brand-accent bg-clip-text text-transparent;
 	}
 }
