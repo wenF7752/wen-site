@@ -16,7 +16,7 @@
 
 		<div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
 			{#each projects as project, i (project.title)}
-				<div use:reveal={{ delay: i * 100 }}>
+				<div class="h-full" use:reveal={{ delay: i * 100 }}>
 					<ProjectCard {project} />
 				</div>
 			{/each}

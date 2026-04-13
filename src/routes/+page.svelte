@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Hero from '$lib/components/sections/Hero.svelte';
-	import AIWorkflow from '$lib/components/sections/AIWorkflow.svelte';
+	import Pipeline from '$lib/components/sections/Pipeline.svelte';
 	import ProjectGrid from '$lib/components/sections/ProjectGrid.svelte';
 </script>
 
@@ -13,5 +13,5 @@
 </svelte:head>
 
 <Hero />
-<AIWorkflow />
+<Pipeline />
 <ProjectGrid />

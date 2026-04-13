@@ -12,7 +12,7 @@ export const projects: Project[] = [
 		title: 'AI-Native Portfolio',
 		description:
 			'This site. Built entirely with AI-assisted workflows to demonstrate modern development practices. Architecture planned by coding agents, implemented with AI-augmented editors.',
-		link: '#',
+		link: 'https://github.com/wenF7752/wen-site',
 		tags: ['Svelte 5', 'TypeScript', 'Tailwind v4', 'Agentic Workflow'],
 		aiHighlight: 'Meta-demonstration: built BY the AI workflow it showcases',
 		status: 'live'

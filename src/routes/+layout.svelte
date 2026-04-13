@@ -7,7 +7,11 @@
 	let { children } = $props();
 </script>
 
-<div class="flex min-h-screen flex-col">
+<!-- Background layers -->
+<div class="gradient-mesh" aria-hidden="true"></div>
+<div class="vignette" aria-hidden="true"></div>
+
+<div class="relative z-10 flex min-h-screen flex-col">
 	<Navbar />
 	<main class="flex-grow">
 		{@render children()}

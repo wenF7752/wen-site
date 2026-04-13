@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { type Snippet } from 'svelte';
+	import { magnetic } from '$lib/actions/magnetic';
 
 	interface Props {
 		variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
@@ -23,11 +24,11 @@
 </script>
 
 {#if href}
-	<a {href} class={classes} {...rest}>
+	<a {href} class={classes} {...rest} use:magnetic={{ strength: 0.2, radius: 80 }}>
 		{@render children()}
 	</a>
 {:else}
-	<button class={classes} {...rest}>
+	<button class={classes} {...rest} use:magnetic={{ strength: 0.2, radius: 80 }}>
 		{@render children()}
 	</button>
 {/if}
