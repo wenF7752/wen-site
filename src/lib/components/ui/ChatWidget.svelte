@@ -1,45 +1,64 @@
 <script lang="ts">
-	import { Chat } from '@ai-sdk/svelte';
-	import ChatMessage from './ChatMessage.svelte';
+	import { Chat } from '@ai-sdk/svelte'
+	import ChatMessage from './ChatMessage.svelte'
+	import { chatMessageMetadataSchema, type ChatUIMessage } from '$lib/types/chat'
 
-	let isOpen = $state(false);
-	let inputText = $state('');
-	let messagesContainer: HTMLDivElement | undefined = $state();
+	let isOpen = $state(false)
+	let inputText = $state('')
+	let messagesContainer: HTMLDivElement | undefined = $state()
 
-	const chat = new Chat({});
+	const chat = new Chat<ChatUIMessage>({
+		messageMetadataSchema: chatMessageMetadataSchema
+	})
 
 	const suggestedQuestions = [
 		'What AI skills does Wen have?',
 		'How does Wen use AI in development?',
 		'Tell me about the RAG chatbot.'
-	];
+	]
 
 	function sendText(text: string) {
-		if (!text.trim()) return;
-		chat.sendMessage({ text });
-		inputText = '';
+		if (!text.trim()) return
+		chat.sendMessage({ text })
+		inputText = ''
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Enter' && !e.shiftKey) {
-			e.preventDefault();
-			sendText(inputText);
+			e.preventDefault()
+			sendText(inputText)
 		}
+	}
+
+	function handleSourceClick(sectionId: string) {
+		isOpen = false
+		setTimeout(() => {
+			const el = document.querySelector(sectionId)
+			el?.scrollIntoView({ behavior: 'smooth' })
+		}, 150)
 	}
 
 	function scrollToBottom() {
 		if (messagesContainer) {
-			messagesContainer.scrollTop = messagesContainer.scrollHeight;
+			messagesContainer.scrollTop = messagesContainer.scrollHeight
 		}
 	}
 
 	$effect(() => {
 		if (chat.messages.length) {
-			setTimeout(scrollToBottom, 50);
+			setTimeout(scrollToBottom, 50)
 		}
-	});
+	})
 
-	let isActive = $derived(chat.status === 'submitted' || chat.status === 'streaming');
+	let isActive = $derived(chat.status === 'submitted' || chat.status === 'streaming')
+
+	let thinkingLabel = $derived(
+		chat.status === 'submitted'
+			? 'Analyzing query...'
+			: chat.status === 'streaming'
+				? 'Generating response...'
+				: ''
+	)
 </script>
 
 <!-- Toggle button -->
@@ -121,21 +140,24 @@
 							?.filter((p) => p.type === 'text')
 							.map((p) => p.text)
 							.join('') || ''}
+						metadata={message.role === 'assistant' ? message.metadata : undefined}
+						onSourceClick={handleSourceClick}
+						onSuggestionClick={sendText}
 					/>
 				{/each}
 
 				{#if isActive}
 					<div class="flex justify-start">
 						<div
-							class="flex gap-1.5 rounded-2xl border border-white/[0.06] bg-white/[0.03] px-4 py-3"
+							class="flex items-center gap-2.5 rounded-2xl border border-white/[0.06] bg-white/[0.03] px-4 py-3"
 						>
-							<span class="h-1.5 w-1.5 animate-bounce rounded-full bg-surface-500"></span>
-							<span
-								class="h-1.5 w-1.5 animate-bounce rounded-full bg-surface-500"
-								style="animation-delay: 150ms;"></span>
-							<span
-								class="h-1.5 w-1.5 animate-bounce rounded-full bg-surface-500"
-								style="animation-delay: 300ms;"></span>
+							<span class="relative flex h-2 w-2">
+								<span
+									class="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-primary opacity-75"
+								></span>
+								<span class="inline-flex h-2 w-2 rounded-full bg-brand-primary"></span>
+							</span>
+							<span class="text-xs text-surface-400">{thinkingLabel}</span>
 						</div>
 					</div>
 				{/if}

@@ -1,9 +1,24 @@
-import { env } from '$env/dynamic/private';
-import { getSupabaseClient } from './supabase';
+import { env } from '$env/dynamic/private'
+import { getSupabaseClient } from './supabase'
+import { CONFIDENCE_THRESHOLDS, type ConfidenceLevel, type ContentCategory } from '$lib/types/chat'
+
+interface RetrievedDocument {
+	content: string
+	similarity: number
+	category: ContentCategory
+	source: string
+}
+
+export interface RetrievalResult {
+	documents: RetrievedDocument[]
+	confidence: ConfidenceLevel
+	categories: ContentCategory[]
+	contextText: string
+}
 
 export async function embedQuery(text: string): Promise<number[]> {
-	const apiKey = env.OPENAI_API_KEY;
-	if (!apiKey) throw new Error('Missing OPENAI_API_KEY');
+	const apiKey = env.OPENAI_API_KEY
+	if (!apiKey) throw new Error('Missing OPENAI_API_KEY')
 
 	const response = await fetch('https://api.openai.com/v1/embeddings', {
 		method: 'POST',
@@ -15,34 +30,67 @@ export async function embedQuery(text: string): Promise<number[]> {
 			model: 'text-embedding-3-small',
 			input: text
 		})
-	});
+	})
 
 	if (!response.ok) {
-		throw new Error(`OpenAI embedding error: ${response.status}`);
+		throw new Error(`OpenAI embedding error: ${response.status}`)
 	}
 
-	const data = await response.json();
-	return data.data[0].embedding;
+	const data = await response.json()
+	return data.data[0].embedding
 }
 
-export async function retrieveContext(queryEmbedding: number[], limit = 5): Promise<string> {
-	const supabase = getSupabaseClient();
+export async function retrieveContext(
+	queryEmbedding: number[],
+	limit = 5
+): Promise<RetrievalResult> {
+	const supabase = getSupabaseClient()
 
 	const { data, error } = await supabase.rpc('match_documents', {
 		query_embedding: JSON.stringify(queryEmbedding),
 		match_threshold: 0.1,
 		match_count: limit
-	});
+	})
 
 	if (error) {
-		throw new Error(`Supabase retrieval error: ${error.message}`);
+		throw new Error(`Supabase retrieval error: ${error.message}`)
 	}
 
 	if (!data || data.length === 0) {
-		return 'No relevant context found in the portfolio.';
+		return {
+			documents: [],
+			confidence: 'low',
+			categories: [],
+			contextText: 'No relevant context found in the portfolio.'
+		}
 	}
 
-	return data.map((doc: { content: string; similarity: number }) => doc.content).join('\n\n---\n\n');
+	const documents: RetrievedDocument[] = data.map(
+		(doc: { content: string; similarity: number; metadata: Record<string, string> }) => ({
+			content: doc.content,
+			similarity: doc.similarity,
+			category: (doc.metadata?.category || 'background') as ContentCategory,
+			source: doc.metadata?.source || 'unknown'
+		})
+	)
+
+	const topScore = documents[0]?.similarity ?? 0
+	let confidence: ConfidenceLevel = 'low'
+	if (topScore >= CONFIDENCE_THRESHOLDS.high) confidence = 'high'
+	else if (topScore >= CONFIDENCE_THRESHOLDS.medium) confidence = 'medium'
+
+	const seen = new Set<ContentCategory>()
+	const categories: ContentCategory[] = []
+	for (const doc of documents) {
+		if (!seen.has(doc.category)) {
+			seen.add(doc.category)
+			categories.push(doc.category)
+		}
+	}
+
+	const contextText = documents.map((d) => d.content).join('\n\n---\n\n')
+
+	return { documents, confidence, categories, contextText }
 }
 
 export function buildSystemPrompt(context: string): string {
@@ -58,5 +106,5 @@ Rules you must always follow:
 - Do not generate code, write emails, or perform tasks unrelated to answering questions about Wen's portfolio.
 
 Context from Wen's portfolio:
-${context}`;
+${context}`
 }

@@ -44,6 +44,7 @@
 		"@ai-sdk/svelte": "^4.0.154",
 		"@supabase/supabase-js": "^2.102.1",
 		"@sveltejs/adapter-vercel": "^6.3.3",
-		"ai": "^6.0.154"
+		"ai": "^6.0.154",
+		"zod": "^4.3.6"
 	}
 }
