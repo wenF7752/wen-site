@@ -1,13 +1,17 @@
 <script lang="ts">
 	import { type Snippet } from 'svelte';
+	import type { HTMLAnchorAttributes, HTMLButtonAttributes } from 'svelte/elements';
 
-	interface Props {
+	type BaseProps = {
 		variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
-		href?: string;
 		children: Snippet;
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		[key: string]: any;
-	}
+	};
+
+	type Props = BaseProps &
+		(
+			| ({ href: string } & Omit<HTMLAnchorAttributes, 'children'>)
+			| ({ href?: undefined } & Omit<HTMLButtonAttributes, 'children'>)
+		);
 
 	let { variant = 'primary', href, children, ...rest }: Props = $props();
 
@@ -23,11 +27,13 @@
 </script>
 
 {#if href}
-	<a {href} class={classes} {...rest}>
+	{@const anchorRest = rest as Omit<HTMLAnchorAttributes, 'href' | 'children'>}
+	<a {href} class={classes} {...anchorRest}>
 		{@render children()}
 	</a>
 {:else}
-	<button class={classes} {...rest}>
+	{@const buttonRest = rest as Omit<HTMLButtonAttributes, 'children'>}
+	<button class={classes} {...buttonRest}>
 		{@render children()}
 	</button>
 {/if}

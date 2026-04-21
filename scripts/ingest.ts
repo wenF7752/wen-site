@@ -45,28 +45,35 @@ async function embedTexts(texts: string[]): Promise<number[][]> {
 }
 
 async function main() {
-	console.log(`Ingesting ${portfolioContent.length} content chunks...`);
+	const dryRun = process.argv.includes('--dry-run');
 
-	// Clear existing documents
+	console.log(`Ingesting ${portfolioContent.length} content chunks${dryRun ? ' (dry run)' : ''}...`);
+
+	// Embed first so a failing OpenAI call never leaves the table empty.
+	const texts = portfolioContent.map((chunk) => chunk.text);
+	console.log('Generating embeddings...');
+	const embeddings = await embedTexts(texts);
+	console.log(`Generated ${embeddings.length} embeddings.`);
+
+	const rows = portfolioContent.map((chunk, i) => ({
+		content: chunk.text,
+		metadata: chunk.metadata,
+		embedding: embeddings[i]
+	}));
+
+	if (dryRun) {
+		const preview = rows[0];
+		console.log(`Dry run complete. ${rows.length} rows ready to insert.`);
+		console.log(`First row preview: metadata=${JSON.stringify(preview.metadata)}, content="${preview.content.slice(0, 80)}..."`);
+		return;
+	}
+
 	const { error: deleteError } = await supabase.from('documents').delete().neq('id', 0);
 	if (deleteError) {
 		console.error('Error clearing documents:', deleteError.message);
 		process.exit(1);
 	}
 	console.log('Cleared existing documents.');
-
-	// Embed all chunks
-	const texts = portfolioContent.map((chunk) => chunk.text);
-	console.log('Generating embeddings...');
-	const embeddings = await embedTexts(texts);
-	console.log(`Generated ${embeddings.length} embeddings.`);
-
-	// Insert into Supabase
-	const rows = portfolioContent.map((chunk, i) => ({
-		content: chunk.text,
-		metadata: chunk.metadata,
-		embedding: embeddings[i]
-	}));
 
 	const { error: insertError } = await supabase.from('documents').insert(rows);
 	if (insertError) {

@@ -4,11 +4,13 @@
  * Update this file when your experience or projects change, then re-run the ingest script.
  */
 
+import type { ContentCategory } from '../types/chat.js';
+
 export interface ContentChunk {
 	text: string;
 	metadata: {
 		source: string;
-		category: 'background' | 'skills' | 'workflow' | 'projects' | 'philosophy';
+		category: ContentCategory;
 	};
 }
 
@@ -57,12 +59,58 @@ export const portfolioContent: ContentChunk[] = [
 
 	// --- Projects ---
 	{
-		text: `Wen's AI-Native Portfolio site is a meta-demonstration of his AI workflow. The entire site was built using AI-assisted development: architecture planned by coding agents, implemented with AI-augmented editors, and validated through automated hooks. It uses SvelteKit 2, Svelte 5, TypeScript, and Tailwind CSS v4.`,
+		text: `Wen's AI-Native Portfolio site is a meta-demonstration of his AI workflow. The entire site was built using AI-assisted development: architecture planned by coding agents, implemented with AI-augmented editors, and validated through automated hooks. It uses SvelteKit 2, Svelte 5 (runes API exclusively), TypeScript in strict mode, and Tailwind CSS v4. Deployed to Vercel with Node.js 22.`,
 		metadata: { source: 'projects', category: 'projects' }
 	},
 	{
-		text: `The portfolio features a RAG-powered chatbot that demonstrates Retrieval-Augmented Generation in production. It uses Supabase pgvector for semantic search, OpenAI embeddings for vectorization, and Anthropic Claude for response generation. Visitors can ask questions about Wen's experience and get grounded, accurate answers.`,
+		text: `The portfolio features a RAG-powered chatbot that demonstrates Retrieval-Augmented Generation in production. It uses Supabase pgvector for semantic search, OpenAI text-embedding-3-small for vectorization (1536-dimensional embeddings), and Moonshot Kimi (kimi-k2-turbo-preview) via an OpenAI-compatible API for response generation. Visitors can ask questions about Wen's experience and get grounded, accurate answers.`,
 		metadata: { source: 'projects', category: 'projects' }
+	},
+
+	// --- Technical Architecture: RAG Pipeline ---
+	{
+		text: `The RAG pipeline follows a precise flow: user message arrives via POST /api/chat, the server extracts the latest user message, enforces rate limiting (10 requests per minute per IP), validates message length (500 chars max) and conversation length (10 messages max). The query is then embedded using OpenAI text-embedding-3-small, and the embedding is used to search Supabase pgvector via a match_documents RPC function using cosine similarity.`,
+		metadata: { source: 'architecture', category: 'projects' }
+	},
+	{
+		text: `The agentic routing system classifies every incoming query into one of three paths before deciding how to respond. Path A handles greetings (detected via regex pattern matching for hi, hello, hey, etc.) and returns a canned welcome message with suggested follow-up questions, with no LLM call or embedding needed. Path B handles low-confidence queries where the top retrieval similarity score is below 0.25, returning a polite decline with dynamically generated follow-up suggestions, again with no LLM call. Path C handles medium and high confidence queries (similarity >= 0.25) by streaming an LLM response with full RAG context.`,
+		metadata: { source: 'architecture', category: 'projects' }
+	},
+	{
+		text: `Confidence scoring is computed from the top similarity score returned by pgvector cosine search. A score of 0.45 or higher maps to high confidence, 0.25 to 0.45 maps to medium confidence, and below 0.25 maps to low confidence. This three-tier system prevents the LLM from hallucinating on off-topic questions (low confidence gets declined) while still providing helpful answers when context is available. Each response carries metadata including the confidence level, source categories, and optional suggested follow-up questions.`,
+		metadata: { source: 'architecture', category: 'projects' }
+	},
+	{
+		text: `The chat API uses the Vercel AI SDK's manual stream control via createUIMessageStream and createUIMessageStreamResponse. For greeting and low-confidence paths, the server constructs stream chunks manually (start, text-start, text-delta, text-end, finish) with message metadata attached. For LLM paths, it writes a start chunk with metadata, merges the streamText result (with sendStart and sendFinish disabled), waits for the LLM stream to complete, then writes its own finish chunk with metadata. This gives full control over what metadata reaches the client.`,
+		metadata: { source: 'architecture', category: 'projects' }
+	},
+
+	// --- Technical Architecture: Database ---
+	{
+		text: `The database layer uses Supabase with the pgvector extension. A single documents table stores id (bigserial), content (text), metadata (jsonb with category and source fields), embedding (vector with 1536 dimensions matching OpenAI text-embedding-3-small output), and created_at (timestamptz). An IVFFlat index with 100 lists on the embedding column using cosine_ops enables fast approximate nearest neighbor search. A match_documents RPC function performs the similarity search with configurable threshold and result count.`,
+		metadata: { source: 'architecture', category: 'projects' }
+	},
+	{
+		text: `The content ingestion pipeline is a standalone CLI script (scripts/ingest.ts) that runs outside SvelteKit using dotenv for environment variables. It reads curated content chunks from portfolio-content.ts, clears existing documents from Supabase, batch-embeds all chunk texts via the OpenAI embeddings API, then bulk-inserts rows with content, metadata, and embeddings. Content chunks are manually curated rather than auto-chunked, with each chunk focused on a single topic for optimal retrieval precision.`,
+		metadata: { source: 'architecture', category: 'projects' }
+	},
+
+	// --- Engineering Approach ---
+	{
+		text: `Wen's engineering approach for this project follows a strict research-plan-execute workflow. Every non-trivial feature starts with a research phase where findings are written to research/ markdown files. Then a detailed plan is written in plans/ with restated problem, assumptions, constraints, files affected, data flow model, and verification strategy. Only after the plan is reviewed and approved does implementation begin, executed mechanically with each task checked off as completed.`,
+		metadata: { source: 'engineering', category: 'workflow' }
+	},
+	{
+		text: `The project uses harness engineering to maintain code quality during AI-assisted development. A PostToolUse hook runs ESLint automatically on every file edit (TypeScript, JavaScript, and Svelte files), catching lint errors immediately. The CLAUDE.md file encodes project conventions, hard rules, and learned rules that accumulate over sessions. When a mistake happens, the root cause is identified, a fix is encoded as a rule in CLAUDE.md, and the change is logged to a harness changelog. This creates a feedback loop that prevents the same mistakes from recurring.`,
+		metadata: { source: 'engineering', category: 'workflow' }
+	},
+	{
+		text: `Context engineering is central to how Wen builds with AI. The CLAUDE.md file serves as a structured context document that includes project overview, architecture, conventions, environment variables, file structure, known gotchas, and hard rules. This ensures every AI coding session starts with accurate, comprehensive context about the codebase. The file is maintained as living documentation that evolves with the project rather than a static reference.`,
+		metadata: { source: 'engineering', category: 'skills' }
+	},
+	{
+		text: `The portfolio chatbot's client-side implementation uses Svelte 5 runes exclusively with the Vercel AI SDK's Chat class. The Chat is typed with a generic UIMessage parameterized by ChatMessageMetadata (containing confidence level, source categories, and suggested follow-ups). A Zod schema validates incoming metadata. The UI renders confidence badges (color-coded green/yellow/red), clickable source chips that scroll to relevant page sections, and follow-up suggestion buttons. A thinking indicator shows labeled states ("Analyzing query..." then "Generating response...") derived from the chat status.`,
+		metadata: { source: 'engineering', category: 'projects' }
 	},
 
 	// --- Philosophy ---

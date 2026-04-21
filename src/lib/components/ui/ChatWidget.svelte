@@ -1,45 +1,66 @@
 <script lang="ts">
-	import { Chat } from '@ai-sdk/svelte';
-	import ChatMessage from './ChatMessage.svelte';
+	import { Chat } from '@ai-sdk/svelte'
+	import { MessageSquarePlus } from 'lucide-svelte'
+	import ChatMessage from './ChatMessage.svelte'
+	import { chatMessageMetadataSchema, type ChatUIMessage } from '$lib/types/chat'
 
-	let isOpen = $state(false);
-	let inputText = $state('');
-	let messagesContainer: HTMLDivElement | undefined = $state();
+	let isOpen = $state(false)
+	let inputText = $state('')
+	let messagesContainer: HTMLDivElement | undefined = $state()
 
-	const chat = new Chat({});
+	const chat = new Chat<ChatUIMessage>({
+		messageMetadataSchema: chatMessageMetadataSchema
+	})
 
 	const suggestedQuestions = [
 		'What AI skills does Wen have?',
 		'How does Wen use AI in development?',
 		'Tell me about the RAG chatbot.'
-	];
+	]
 
 	function sendText(text: string) {
-		if (!text.trim()) return;
-		chat.sendMessage({ text });
-		inputText = '';
+		if (!text.trim()) return
+		if (chat.status === 'submitted' || chat.status === 'streaming') return
+		chat.sendMessage({ text })
+		inputText = ''
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Enter' && !e.shiftKey) {
-			e.preventDefault();
-			sendText(inputText);
+			e.preventDefault()
+			sendText(inputText)
 		}
+	}
+
+	function handleSourceClick(sectionId: string) {
+		isOpen = false
+		document.querySelector(sectionId)?.scrollIntoView({ behavior: 'smooth' })
 	}
 
 	function scrollToBottom() {
-		if (messagesContainer) {
-			messagesContainer.scrollTop = messagesContainer.scrollHeight;
-		}
+		if (!messagesContainer) return
+		messagesContainer.scrollTop = messagesContainer.scrollHeight
 	}
 
 	$effect(() => {
-		if (chat.messages.length) {
-			setTimeout(scrollToBottom, 50);
-		}
-	});
+		if (chat.messages.length === 0) return
+		const frame = requestAnimationFrame(scrollToBottom)
+		return () => cancelAnimationFrame(frame)
+	})
 
-	let isActive = $derived(chat.status === 'submitted' || chat.status === 'streaming');
+	let isActive = $derived(chat.status === 'submitted' || chat.status === 'streaming')
+
+	let lastAssistantId = $derived(
+		chat.messages.filter((m) => m.role === 'assistant').at(-1)?.id
+	)
+
+	let thinkingLabel = $derived(
+		chat.status === 'submitted'
+			? 'Analyzing query...'
+			: chat.status === 'streaming'
+				? 'Generating response...'
+				: ''
+	)
 </script>
 
 <!-- Toggle button -->
@@ -87,10 +108,20 @@
 			<div class="flex h-8 w-8 items-center justify-center rounded-full bg-brand-primary/20">
 				<div class="h-2 w-2 rounded-full bg-brand-primary"></div>
 			</div>
-			<div>
+			<div class="flex-1">
 				<div class="text-sm font-semibold text-surface-50">Ask Me Anything</div>
 				<div class="text-xs text-surface-500">AI-powered by RAG</div>
 			</div>
+			<button
+				type="button"
+				onclick={() => (chat.messages = [])}
+				disabled={chat.messages.length === 0 || isActive}
+				aria-label="New chat"
+				title="New chat"
+				class="flex h-8 w-8 items-center justify-center rounded-full text-surface-500 transition-colors hover:bg-white/[0.04] hover:text-surface-200 disabled:pointer-events-none disabled:opacity-30"
+			>
+				<MessageSquarePlus size={16} />
+			</button>
 		</div>
 
 		<!-- Messages -->
@@ -121,21 +152,25 @@
 							?.filter((p) => p.type === 'text')
 							.map((p) => p.text)
 							.join('') || ''}
+						metadata={message.role === 'assistant' ? message.metadata : undefined}
+						showFollowUps={message.id === lastAssistantId && !isActive}
+						onSourceClick={handleSourceClick}
+						onSuggestionClick={sendText}
 					/>
 				{/each}
 
 				{#if isActive}
 					<div class="flex justify-start">
 						<div
-							class="flex gap-1.5 rounded-2xl border border-white/[0.06] bg-white/[0.03] px-4 py-3"
+							class="flex items-center gap-2.5 rounded-2xl border border-white/[0.06] bg-white/[0.03] px-4 py-3"
 						>
-							<span class="h-1.5 w-1.5 animate-bounce rounded-full bg-surface-500"></span>
-							<span
-								class="h-1.5 w-1.5 animate-bounce rounded-full bg-surface-500"
-								style="animation-delay: 150ms;"></span>
-							<span
-								class="h-1.5 w-1.5 animate-bounce rounded-full bg-surface-500"
-								style="animation-delay: 300ms;"></span>
+							<span class="relative flex h-2 w-2">
+								<span
+									class="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-primary opacity-75"
+								></span>
+								<span class="inline-flex h-2 w-2 rounded-full bg-brand-primary"></span>
+							</span>
+							<span class="text-xs text-surface-400">{thinkingLabel}</span>
 						</div>
 					</div>
 				{/if}
