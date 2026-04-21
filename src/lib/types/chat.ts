@@ -1,7 +1,15 @@
 import { z } from 'zod/v4'
 import type { UIMessage } from 'ai'
 
-export type ContentCategory = 'background' | 'skills' | 'workflow' | 'projects' | 'philosophy'
+export const contentCategorySchema = z.enum([
+	'background',
+	'skills',
+	'workflow',
+	'projects',
+	'philosophy'
+])
+
+export type ContentCategory = z.infer<typeof contentCategorySchema>
 
 export type ConfidenceLevel = 'high' | 'medium' | 'low'
 
@@ -15,7 +23,7 @@ export type ChatUIMessage = UIMessage<ChatMessageMetadata>
 
 export const chatMessageMetadataSchema = z.object({
 	confidence: z.enum(['high', 'medium', 'low']),
-	sources: z.array(z.enum(['background', 'skills', 'workflow', 'projects', 'philosophy'])),
+	sources: z.array(contentCategorySchema),
 	suggestedFollowUps: z.array(z.string()).optional()
 })
 

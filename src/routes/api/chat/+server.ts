@@ -5,9 +5,9 @@ import {
 	streamText,
 	createUIMessageStream,
 	createUIMessageStreamResponse,
-	type UIMessage,
 	type UIMessageStreamWriter
 } from 'ai'
+import { z } from 'zod/v4'
 import { env } from '$env/dynamic/private'
 import { embedQuery, retrieveContext, buildSystemPrompt } from '$lib/server/rag'
 import { isGreeting, getGreetingResponse, getSuggestedFollowUps } from '$lib/server/query-router'
@@ -18,7 +18,27 @@ const RATE_LIMIT = 10 // requests per window per IP
 const RATE_WINDOW = 60 * 1000 // 1 minute
 const MAX_MESSAGE_LENGTH = 500 // chars per user message
 const MAX_CONVERSATION_LENGTH = 10 // max messages in history
+const MAX_REQUEST_MESSAGES = 100 // hard cap on payload size; server still slices to MAX_CONVERSATION_LENGTH
 const MAX_OUTPUT_TOKENS = 300 // cap LLM response cost
+
+const chatRequestSchema = z.object({
+	messages: z
+		.array(
+			z.object({
+				role: z.enum(['user', 'assistant', 'system']),
+				parts: z
+					.array(
+						z.object({
+							type: z.string(),
+							text: z.string().optional()
+						})
+					)
+					.optional()
+			})
+		)
+		.min(1)
+		.max(MAX_REQUEST_MESSAGES)
+})
 
 // In-memory rate limiting (best-effort on serverless)
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
@@ -40,13 +60,15 @@ function checkRateLimit(ip: string): boolean {
 	return true
 }
 
+type ChatRequestMessage = z.infer<typeof chatRequestSchema>['messages'][number]
+
 // Convert UI messages (parts format) to model messages (content format)
-function toModelMessages(uiMessages: UIMessage[]) {
+function toModelMessages(uiMessages: ChatRequestMessage[]) {
 	return uiMessages.map((msg) => {
 		const text =
 			msg.parts
 				?.filter((p) => p.type === 'text')
-				.map((p) => p.text)
+				.map((p) => p.text ?? '')
 				.join('') || ''
 		return { role: msg.role as 'user' | 'assistant', content: text }
 	})
@@ -79,13 +101,13 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 	}
 
 	try {
-		const { messages } = await request.json()
-
-		if (!messages || !Array.isArray(messages) || messages.length === 0) {
-			return json({ error: 'Messages are required.' }, { status: 400 })
+		const body = await request.json().catch(() => null)
+		const parsed = chatRequestSchema.safeParse(body)
+		if (!parsed.success) {
+			return json({ error: 'Invalid request body.' }, { status: 400 })
 		}
 
-		// Cap conversation length to prevent token bloat
+		const { messages } = parsed.data
 		const recentMessages = messages.slice(-MAX_CONVERSATION_LENGTH)
 
 		// Convert UI messages to model messages
@@ -172,6 +194,13 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 
 				// Wait for LLM stream to complete before sending finish with metadata
 				await result.text
+				const finishReason = await result.finishReason
+				if (finishReason === 'length') {
+					const noteId = crypto.randomUUID()
+					writer.write({ type: 'text-start', id: noteId })
+					writer.write({ type: 'text-delta', id: noteId, delta: '\n\n_(response truncated)_' })
+					writer.write({ type: 'text-end', id: noteId })
+				}
 				writer.write({ type: 'finish', messageMetadata: metadata })
 			}
 		})

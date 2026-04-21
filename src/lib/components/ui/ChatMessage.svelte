@@ -10,11 +10,19 @@
 		role: 'user' | 'assistant'
 		content: string
 		metadata?: ChatMessageMetadata
+		showFollowUps?: boolean
 		onSourceClick?: (sectionId: string) => void
 		onSuggestionClick?: (text: string) => void
 	}
 
-	let { role, content, metadata, onSourceClick, onSuggestionClick }: Props = $props()
+	let {
+		role,
+		content,
+		metadata,
+		showFollowUps = false,
+		onSourceClick,
+		onSuggestionClick
+	}: Props = $props()
 
 	const confidenceColors: Record<string, string> = {
 		high: 'bg-emerald-500',
@@ -76,8 +84,8 @@
 				{/each}
 			</div>
 
-			<!-- Follow-up suggestions -->
-			{#if metadata.suggestedFollowUps && metadata.suggestedFollowUps.length > 0}
+			<!-- Follow-up suggestions only on the most recent assistant message while chat is idle -->
+			{#if showFollowUps && metadata.suggestedFollowUps && metadata.suggestedFollowUps.length > 0}
 				<div class="mt-2 flex flex-col gap-1.5">
 					{#each metadata.suggestedFollowUps as question (question)}
 						<button

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Chat } from '@ai-sdk/svelte'
+	import { MessageSquarePlus } from 'lucide-svelte'
 	import ChatMessage from './ChatMessage.svelte'
 	import { chatMessageMetadataSchema, type ChatUIMessage } from '$lib/types/chat'
 
@@ -19,6 +20,7 @@
 
 	function sendText(text: string) {
 		if (!text.trim()) return
+		if (chat.status === 'submitted' || chat.status === 'streaming') return
 		chat.sendMessage({ text })
 		inputText = ''
 	}
@@ -32,25 +34,25 @@
 
 	function handleSourceClick(sectionId: string) {
 		isOpen = false
-		setTimeout(() => {
-			const el = document.querySelector(sectionId)
-			el?.scrollIntoView({ behavior: 'smooth' })
-		}, 150)
+		document.querySelector(sectionId)?.scrollIntoView({ behavior: 'smooth' })
 	}
 
 	function scrollToBottom() {
-		if (messagesContainer) {
-			messagesContainer.scrollTop = messagesContainer.scrollHeight
-		}
+		if (!messagesContainer) return
+		messagesContainer.scrollTop = messagesContainer.scrollHeight
 	}
 
 	$effect(() => {
-		if (chat.messages.length) {
-			setTimeout(scrollToBottom, 50)
-		}
+		if (chat.messages.length === 0) return
+		const frame = requestAnimationFrame(scrollToBottom)
+		return () => cancelAnimationFrame(frame)
 	})
 
 	let isActive = $derived(chat.status === 'submitted' || chat.status === 'streaming')
+
+	let lastAssistantId = $derived(
+		chat.messages.filter((m) => m.role === 'assistant').at(-1)?.id
+	)
 
 	let thinkingLabel = $derived(
 		chat.status === 'submitted'
@@ -106,10 +108,20 @@
 			<div class="flex h-8 w-8 items-center justify-center rounded-full bg-brand-primary/20">
 				<div class="h-2 w-2 rounded-full bg-brand-primary"></div>
 			</div>
-			<div>
+			<div class="flex-1">
 				<div class="text-sm font-semibold text-surface-50">Ask Me Anything</div>
 				<div class="text-xs text-surface-500">AI-powered by RAG</div>
 			</div>
+			<button
+				type="button"
+				onclick={() => (chat.messages = [])}
+				disabled={chat.messages.length === 0 || isActive}
+				aria-label="New chat"
+				title="New chat"
+				class="flex h-8 w-8 items-center justify-center rounded-full text-surface-500 transition-colors hover:bg-white/[0.04] hover:text-surface-200 disabled:pointer-events-none disabled:opacity-30"
+			>
+				<MessageSquarePlus size={16} />
+			</button>
 		</div>
 
 		<!-- Messages -->
@@ -141,6 +153,7 @@
 							.map((p) => p.text)
 							.join('') || ''}
 						metadata={message.role === 'assistant' ? message.metadata : undefined}
+						showFollowUps={message.id === lastAssistantId && !isActive}
 						onSourceClick={handleSourceClick}
 						onSuggestionClick={sendText}
 					/>

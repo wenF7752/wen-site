@@ -4,11 +4,13 @@
  * Update this file when your experience or projects change, then re-run the ingest script.
  */
 
+import type { ContentCategory } from '../types/chat.js';
+
 export interface ContentChunk {
 	text: string;
 	metadata: {
 		source: string;
-		category: 'background' | 'skills' | 'workflow' | 'projects' | 'philosophy';
+		category: ContentCategory;
 	};
 }
 
