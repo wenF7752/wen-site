@@ -60,7 +60,7 @@
 		};
 
 		const buildState = (w: number, h: number) => {
-			const density = Math.max(50, Math.floor((w * h) / 20000));
+			const density = Math.max(50, Math.floor((w * h) / 40000));
 			nodes = [];
 			for (let i = 0; i < density; i++) {
 				nodes.push({
