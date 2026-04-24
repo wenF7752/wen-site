@@ -7,6 +7,12 @@
 	/* Brand colors - brightened for dark mode visibility */
 	--color-brand-primary: #10b981;
 	--color-brand-accent: #3b82f6;
+	--color-brand-teal: #14b8a6;
+	--color-brand-sky: #38bdf8;
+
+	/* Foreground scale (hero-oriented, complements surface-*) */
+	--color-fg-secondary: #b6c0d4;
+	--color-fg-tertiary: #6b7690;
 
 	/* Surface colors */
 	--color-surface-50: #f8fafc;
@@ -29,21 +35,6 @@
 
 	body {
 		@apply bg-surface-950 font-sans text-surface-400 antialiased;
-	}
-
-	/* Subtle dot grid texture */
-	body::before {
-		content: '';
-		position: fixed;
-		inset: 0;
-		z-index: 0;
-		pointer-events: none;
-		background-image: radial-gradient(
-			circle at 1px 1px,
-			rgba(255, 255, 255, 0.03) 1px,
-			transparent 0
-		);
-		background-size: 40px 40px;
 	}
 
 	/* Custom selection */
@@ -116,5 +107,19 @@
 	/* Gradient text utility */
 	.text-gradient {
 		@apply bg-gradient-to-r from-brand-primary to-brand-accent bg-clip-text text-transparent;
+	}
+
+	/* 4-stop headline gradient (handoff: emerald → teal → sky → blue) */
+	.text-gradient-headline {
+		background: linear-gradient(
+			90deg,
+			var(--color-brand-primary) 0%,
+			var(--color-brand-teal) 35%,
+			var(--color-brand-sky) 70%,
+			var(--color-brand-accent) 100%
+		);
+		-webkit-background-clip: text;
+		background-clip: text;
+		color: transparent;
 	}
 }

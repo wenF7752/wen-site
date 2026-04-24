@@ -28,6 +28,10 @@ const SUGGESTED_QUESTIONS: Record<ContentCategory, string[]> = {
 	philosophy: [
 		"What is Wen's development philosophy?",
 		'How does Wen evaluate AI-generated code?'
+	],
+	experience: [
+		"What is Wen's current role?",
+		'What has Wen built recently?'
 	]
 }
 

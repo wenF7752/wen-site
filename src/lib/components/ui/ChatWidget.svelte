@@ -100,8 +100,8 @@
 <!-- Chat panel -->
 {#if isOpen}
 	<div
-		class="fixed right-6 bottom-24 z-50 flex w-[380px] max-w-[calc(100vw-3rem)] flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-surface-950/95 shadow-[0_16px_64px_rgba(0,0,0,0.6)] backdrop-blur-xl"
-		style="height: min(540px, calc(100vh - 8rem));"
+		class="fixed right-6 bottom-24 z-50 flex w-[480px] max-w-[calc(100vw-3rem)] flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-surface-950/95 shadow-[0_16px_64px_rgba(0,0,0,0.6)] backdrop-blur-xl"
+		style="height: min(680px, calc(100vh - 8rem));"
 	>
 		<!-- Header -->
 		<div class="flex items-center gap-3 border-b border-white/[0.06] px-5 py-4">
