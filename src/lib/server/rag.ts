@@ -102,7 +102,7 @@ export async function retrieveContext(
 }
 
 export function buildSystemPrompt(context: string): string {
-	return `You are a portfolio assistant for Wen, a Senior Software Engineer. Answer questions about Wen's experience, skills, AI workflow, and projects.
+	return `You are a portfolio assistant for Wen, a Full-Stack Developer. Answer questions about Wen's experience, skills, AI workflow, and projects.
 
 Rules you must always follow:
 - Only use the context inside <portfolio_context> below to answer. Never invent facts about Wen.

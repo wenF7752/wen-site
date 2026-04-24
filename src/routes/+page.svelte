@@ -9,7 +9,7 @@
 	<title>Wen | AI-Native Software Engineer</title>
 	<meta
 		name="description"
-		content="Senior Software Engineer building production systems with AI-assisted workflows."
+		content="Full-Stack Developer building production systems with AI-assisted workflows."
 	/>
 </svelte:head>
 

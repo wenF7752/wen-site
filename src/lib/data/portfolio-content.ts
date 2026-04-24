@@ -17,7 +17,7 @@ export interface ContentChunk {
 export const portfolioContent: ContentChunk[] = [
 	// --- Background ---
 	{
-		text: `Wen is a Senior Software Engineer specializing in AI-native development workflows. He builds production systems using AI-assisted architecture, agent orchestration, and modern web technologies. His approach combines deep technical skill with deliberate AI integration, where human judgment drives every decision.`,
+		text: `Wen is a Full-Stack Developer specializing in AI-native development workflows. He builds production systems using AI-assisted architecture, agent orchestration, and modern web technologies. His approach combines deep technical skill with deliberate AI integration, where human judgment drives every decision.`,
 		metadata: { source: 'background', category: 'background' }
 	},
 	{

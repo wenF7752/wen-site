@@ -16,11 +16,7 @@
 
 	<div class="relative z-10 mx-auto max-w-7xl px-6">
 		<div class="max-w-4xl">
-			<div class="animate-in mb-3 font-mono text-sm tracking-wider text-brand-primary">
-				Senior Software Engineer
-			</div>
-
-			<h1 class="animate-in mb-8 font-extrabold delay-75">
+			<h1 class="animate-in mb-8 font-extrabold">
 				Engineering with AI.<br />
 				<span class="text-gradient">Shipping with Precision.</span>
 			</h1>
@@ -63,9 +59,6 @@
 			fade-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards,
 			slide-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 		opacity: 0;
-	}
-	.delay-75 {
-		animation-delay: 75ms;
 	}
 	.delay-150 {
 		animation-delay: 150ms;
