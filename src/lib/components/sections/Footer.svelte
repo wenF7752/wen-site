@@ -12,19 +12,19 @@
 
 		<div class="flex gap-8">
 			<a
-				href="https://github.com"
+				href="https://github.com/wenF7752"
 				class="text-sm transition-colors hover:text-surface-50"
 				target="_blank"
 				rel="noopener noreferrer">GitHub</a
 			>
 			<a
-				href="https://twitter.com"
+				href="https://x.com/WenTradeFuture"
 				class="text-sm transition-colors hover:text-surface-50"
 				target="_blank"
-				rel="noopener noreferrer">Twitter</a
+				rel="noopener noreferrer">X</a
 			>
 			<a
-				href="https://linkedin.com"
+				href="https://www.linkedin.com/in/wenf7752/"
 				class="text-sm transition-colors hover:text-surface-50"
 				target="_blank"
 				rel="noopener noreferrer">LinkedIn</a

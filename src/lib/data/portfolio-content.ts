@@ -121,5 +121,47 @@ export const portfolioContent: ContentChunk[] = [
 	{
 		text: `Wen follows a research-first, plan-in-markdown, execute-mechanically workflow. For non-trivial tasks, he writes findings to research files, creates detailed plans with assumptions, constraints, and verification strategies, then implements mechanically while marking progress. If an approach fails, he reverts and re-plans rather than patching.`,
 		metadata: { source: 'philosophy', category: 'philosophy' }
+	},
+
+	// --- Current Role (resume-derived, employer name intentionally omitted) ---
+	{
+		text: `Wen is currently a Full-Stack Developer at an education technology company in Phoenix, Arizona, from 2023 to present. He has 3+ years shipping production web apps and works at the frontier of AI-assisted development, getting real leverage out of LLMs in daily engineering by designing workflows, writing precise specs, and orchestrating agents to ship features faster without sacrificing quality.`,
+		metadata: { source: 'current-role', category: 'experience' }
+	},
+	{
+		text: `In his current Full-Stack Developer role, Wen architects AI-assisted development harnesses, custom agent profiles, MCP tool integrations, and phase-gated workflows that keep LLM output tightly aligned with requirements instead of drifting into confident hallucination. He turns vague product asks into typed specs and testable contracts before code gets written, through deliberate context engineering. The result is fewer iterations, cleaner pull requests, and predictable delivery.`,
+		metadata: { source: 'current-role-workflow', category: 'experience' }
+	},
+	{
+		text: `Wen ships LLM-powered product features end-to-end: custom chatbots, RAG pipelines over domain data, streaming UX with completion-vs-truncation protocols, and output-contract validation that surfaces drift as warnings rather than silent corrections. He maintains a cross-session knowledge base that feeds agents hard-won debugging patterns (streaming protocols, effect races, LLM output validation, cache invariants), so AI tools learn from past mistakes instead of re-solving them.`,
+		metadata: { source: 'current-role-llm-features', category: 'experience' }
+	},
+	{
+		text: `Wen builds SvelteKit applications end-to-end for thousands of students: Svelte 5 rune state models, server-side rendering, Azure AD JWT + LDAP authentication, accessible mobile-first UI, MSSQL stored procedures behind pooled connection wrappers, and Docker + Azure Pipelines CI/CD across dev, QA, and prod environments. He is the go-to teammate for AI tooling adoption and for debugging non-obvious concurrency, streaming, and LLM-boundary failures.`,
+		metadata: { source: 'current-role-sveltekit', category: 'experience' }
+	},
+
+	// --- Prior Roles (resume-derived, company names intentionally omitted) ---
+	{
+		text: `Before his current role, Wen worked as a Full-Stack Developer from 2022 to 2023 on a production NFT marketplace built with Next.js, React, and Node.js. He owned the stack from API design to frontend rendering strategy, supported a live launch event with hundreds of concurrent users competing for a timed NFT drop, and cut perceived page load times by around 40% through static site generation on hot paths, dynamic route restructuring, and hover-triggered data pre-fetch. Earlier, from 2017 to 2018, he worked as a Frontend Web Developer and shipped a Request a Quote flow (JavaScript, Node.js with Express, SMTP) that doubled lead generation.`,
+		metadata: { source: 'prior-roles', category: 'experience' }
+	},
+
+	// --- Resume Tech Stack Summary ---
+	{
+		text: `Wen's production stack includes TypeScript, JavaScript, Python, Java, C++, C#, and Bash for languages; React, Svelte and SvelteKit, Node.js, Express, and NestJS for application frameworks; and PostgreSQL, MySQL, and MongoDB for data. His infrastructure toolkit includes Docker, CI/CD pipelines, AWS, Azure DevOps, Vercel, Supabase, Nomad, and Git. For AI-assisted development he uses Claude Code, Codex, Cursor, Lovable, and Bolt, together with spec-first development, AI-assisted TDD, Agile and Scrum practice, and Retrieval-Augmented Generation patterns.`,
+		metadata: { source: 'resume-tech-stack', category: 'skills' }
+	},
+
+	// --- Education (school name intentionally omitted) ---
+	{
+		text: `Wen holds a Bachelor's degree in Computer Science, studying from 2018 to 2023 in Tempe, Arizona. His coursework covered data structures, algorithms, web development, and database management.`,
+		metadata: { source: 'education', category: 'background' }
+	},
+
+	// --- Contact ---
+	{
+		text: `Wen can be reached by email at me@wenfang.dev. His personal site is wenfang.dev, and his public code lives at github.com/wenF7752.`,
+		metadata: { source: 'contact', category: 'background' }
 	}
 ];

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { aiSkills, workflowSteps } from '$lib/data/ai-workflow';
+	import { techGroups } from '$lib/data/tech-stack';
 	import { reveal } from '$lib/actions/reveal';
 	import ToolCard from '../ui/ToolCard.svelte';
 </script>
@@ -102,6 +103,43 @@
 								<div class="h-full w-px border-l border-dashed border-surface-700"></div>
 							</div>
 						{/if}
+					</div>
+				{/each}
+			</div>
+		</div>
+
+		<!-- Tech stack subsection -->
+		<div class="mt-24" use:reveal>
+			<h3
+				class="mb-2 text-sm font-semibold tracking-widest text-surface-500 uppercase"
+				style="font-size: 0.8125rem;"
+			>
+				Tech I Use
+			</h3>
+			<p class="mb-8 text-sm text-surface-500">
+				The working toolkit behind the workflow above.
+			</p>
+
+			<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+				{#each techGroups as group, i (group.label)}
+					<div
+						use:reveal={{ delay: i * 80 }}
+						class="rounded-xl border border-white/[0.06] bg-white/[0.02] p-5 transition-all duration-300 hover:border-white/[0.12] hover:bg-white/[0.04]"
+					>
+						<div
+							class="mb-3 font-mono text-xs tracking-wider text-brand-primary uppercase"
+						>
+							{group.label}
+						</div>
+						<div class="flex flex-wrap gap-1.5">
+							{#each group.items as item (item)}
+								<span
+									class="rounded-full border border-white/[0.06] bg-white/[0.03] px-2.5 py-0.5 text-xs font-medium text-surface-300"
+								>
+									{item}
+								</span>
+							{/each}
+						</div>
 					</div>
 				{/each}
 			</div>

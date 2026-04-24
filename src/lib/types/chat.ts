@@ -6,7 +6,8 @@ export const contentCategorySchema = z.enum([
 	'skills',
 	'workflow',
 	'projects',
-	'philosophy'
+	'philosophy',
+	'experience'
 ])
 
 export type ContentCategory = z.infer<typeof contentCategorySchema>
@@ -34,7 +35,8 @@ export const SECTION_MAP: Record<ContentCategory, string> = {
 	projects: '#projects',
 	skills: '#ai-workflow',
 	background: '',
-	philosophy: ''
+	philosophy: '',
+	experience: '#experience'
 }
 
 export const CATEGORY_LABELS: Record<ContentCategory, string> = {
@@ -42,7 +44,8 @@ export const CATEGORY_LABELS: Record<ContentCategory, string> = {
 	projects: 'Projects',
 	skills: 'Skills',
 	background: 'Background',
-	philosophy: 'Philosophy'
+	philosophy: 'Philosophy',
+	experience: 'Experience'
 }
 
 export const GREETING_PATTERN =
