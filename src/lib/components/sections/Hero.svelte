@@ -4,12 +4,44 @@
 	let tCounter = $state('00000');
 
 	onMount(() => {
+		const t0 = performance.now();
+		const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+		let reducedMotion = reducedMotionQuery.matches;
+		let intervalId: ReturnType<typeof setInterval> | null = null;
+
 		const tick = () => {
-			tCounter = (Date.now() % 100000).toString().padStart(5, '0');
+			tCounter = (Math.floor(performance.now() - t0) % 100000).toString().padStart(5, '0');
 		};
+
+		const start = () => {
+			if (intervalId !== null || reducedMotion || document.hidden) return;
+			tick();
+			intervalId = setInterval(tick, 100);
+		};
+
+		const stop = () => {
+			if (intervalId === null) return;
+			clearInterval(intervalId);
+			intervalId = null;
+		};
+
+		const onVisibility = () => (document.hidden ? stop() : start());
+		const onReducedMotionChange = (e: MediaQueryListEvent) => {
+			reducedMotion = e.matches;
+			if (reducedMotion) stop();
+			else start();
+		};
+
 		tick();
-		const id = setInterval(tick, 50);
-		return () => clearInterval(id);
+		start();
+		document.addEventListener('visibilitychange', onVisibility);
+		reducedMotionQuery.addEventListener('change', onReducedMotionChange);
+
+		return () => {
+			stop();
+			document.removeEventListener('visibilitychange', onVisibility);
+			reducedMotionQuery.removeEventListener('change', onReducedMotionChange);
+		};
 	});
 </script>
 
@@ -40,7 +72,7 @@
 
 	<!-- Statusbar -->
 	<div
-		class="statusbar absolute right-0 bottom-6 left-0 z-[6] mx-auto flex max-w-7xl flex-col gap-3 px-6 font-mono text-[11px] tracking-[0.12em] text-fg-tertiary md:flex-row md:items-center md:justify-between md:px-14"
+		class="absolute right-0 bottom-6 left-0 z-[6] mx-auto flex max-w-7xl flex-col gap-3 px-6 font-mono text-[11px] tracking-[0.12em] text-fg-tertiary md:flex-row md:items-center md:justify-between md:px-14"
 	>
 		<div
 			class="inline-flex items-center gap-2 self-start rounded-md border border-white/[0.08] bg-white/[0.015] px-3 py-1.5"
@@ -60,8 +92,8 @@
 
 <style>
 	.status-dot {
-		background: #34d399;
-		box-shadow: 0 0 6px #34d399;
+		background: var(--color-brand-primary);
+		box-shadow: 0 0 6px var(--color-brand-primary);
 		animation: pulse 1.6s ease-in-out infinite;
 	}
 
@@ -83,7 +115,7 @@
 	}
 	.hero-btn-primary {
 		background: var(--color-brand-primary);
-		color: #04131a;
+		color: var(--color-surface-950);
 		box-shadow:
 			0 0 0 1px rgba(16, 185, 129, 0.5),
 			0 10px 30px -10px rgba(16, 185, 129, 0.7);

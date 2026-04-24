@@ -1,3 +1,4 @@
+import { ZodError } from 'zod/v4'
 import { env } from '$env/dynamic/private'
 import { getSupabaseClient } from './supabase'
 import {
@@ -65,6 +66,9 @@ export async function retrieveContext(
 	}
 
 	if (!data || data.length === 0) {
+		console.warn(
+			'[rag] retrieveContext returned zero matches above threshold 0.1 — check ingestion state'
+		)
 		return {
 			documents: [],
 			confidence: 'low',
@@ -73,14 +77,29 @@ export async function retrieveContext(
 		}
 	}
 
-	const documents: RetrievedDocument[] = data.map(
-		(doc: { content: string; similarity: number; metadata: Record<string, string> }) => ({
-			content: doc.content,
-			similarity: doc.similarity,
-			category: contentCategorySchema.parse(doc.metadata?.category),
-			source: doc.metadata?.source || 'unknown'
-		})
-	)
+	const documents: RetrievedDocument[] = data
+		.map(
+			(doc: { content: string; similarity: number; metadata: Record<string, string> }) => {
+				try {
+					return {
+						content: doc.content,
+						similarity: doc.similarity,
+						category: contentCategorySchema.parse(doc.metadata?.category),
+						source: doc.metadata?.source || 'unknown'
+					}
+				} catch (err) {
+					if (err instanceof ZodError) {
+						console.warn('[rag] dropping document with unrecognized category', {
+							source: doc.metadata?.source,
+							category: doc.metadata?.category
+						})
+						return null
+					}
+					throw err
+				}
+			}
+		)
+		.filter((d: RetrievedDocument | null): d is RetrievedDocument => d !== null)
 
 	const topScore = documents[0]?.similarity ?? 0
 	let confidence: ConfidenceLevel = 'low'

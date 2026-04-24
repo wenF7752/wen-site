@@ -33,7 +33,10 @@
 	onMount(() => {
 		if (!canvas) return;
 		const ctx = canvas.getContext('2d');
-		if (!ctx) return;
+		if (!ctx) {
+			console.warn('NeuralNetCanvas: 2D context unavailable; skipping neural net animation.');
+			return;
+		}
 
 		// All mutable state lives in closure variables, not $state — RAF mutates this at 60fps.
 		let nodes: NetNode[] = [];
@@ -44,7 +47,7 @@
 
 		const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
 		let reducedMotion = reducedMotionQuery.matches;
-		let paused = typeof document !== 'undefined' && document.hidden;
+		let paused = document.hidden;
 
 		const t0 = performance.now();
 		let rafId = 0;
@@ -170,8 +173,10 @@
 				}
 			}
 
+			fires = fires.filter((f) => !f._burst || t - f.start < f.dur);
+
 			for (const f of fires) {
-				const elapsed = (t - f.start) % 6;
+				const elapsed = f._burst ? t - f.start : (t - f.start) % 6;
 				if (elapsed < 0 || elapsed > f.dur) continue;
 				const progress = elapsed / f.dur;
 				const a = nodes[f.a];
@@ -194,7 +199,7 @@
 				ctx.arc(px, py, 1.6 + intensity * 1.2, 0, Math.PI * 2);
 				ctx.fill();
 
-				if (progress > 0.98) {
+				if (!f._burst && progress > 0.98) {
 					f.a = Math.floor(Math.random() * nodes.length);
 					f.b = Math.floor(Math.random() * nodes.length);
 					f.start = t + 1 + Math.random() * 2.5;
@@ -264,8 +269,13 @@
 		resize();
 		draw(canvas.clientWidth, canvas.clientHeight, 0);
 
-		const ro = new ResizeObserver(resize);
-		ro.observe(canvas);
+		let ro: ResizeObserver | null = null;
+		if (typeof ResizeObserver !== 'undefined') {
+			ro = new ResizeObserver(resize);
+			ro.observe(canvas);
+		} else {
+			window.addEventListener('resize', resize);
+		}
 
 		const onVisibility = () => {
 			paused = document.hidden;
@@ -285,7 +295,8 @@
 
 		return () => {
 			cancelAnimationFrame(rafId);
-			ro.disconnect();
+			if (ro) ro.disconnect();
+			else window.removeEventListener('resize', resize);
 			document.removeEventListener('visibilitychange', onVisibility);
 			reducedMotionQuery.removeEventListener('change', onReducedMotionChange);
 		};
