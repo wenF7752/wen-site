@@ -9,15 +9,24 @@
 		type EmailStage
 	} from '$lib/types/chat'
 
+	interface ContactFormFields {
+		name: string
+		email: string
+		company: string
+		intent: string
+	}
+
 	interface Props {
 		role: 'user' | 'assistant'
 		parts: ChatUIMessage['parts']
 		metadata?: ChatMessageMetadata
 		showFollowUps?: boolean
 		showDraftActions?: boolean
+		showCollectForm?: boolean
 		onSourceClick?: (sectionId: string) => void
 		onSuggestionClick?: (text: string) => void
-		onDraftAction?: (action: 'send' | 'cancel' | 'edit', editText?: string) => void
+		onSubmitContactForm?: (fields: ContactFormFields) => void
+		onDraftAction?: (action: 'send' | 'cancel', body?: string) => void
 	}
 
 	let {
@@ -26,8 +35,10 @@
 		metadata,
 		showFollowUps = false,
 		showDraftActions = false,
+		showCollectForm = false,
 		onSourceClick,
 		onSuggestionClick,
+		onSubmitContactForm,
 		onDraftAction
 	}: Props = $props()
 
@@ -77,20 +88,71 @@
 		failed: 'bg-red-500/15 text-red-300'
 	}
 
-	let editText = $state('')
-	let editing = $state(false)
+	// Edited bodies and editing-mode flags are keyed by part index so multiple
+	// draft parts in one bubble (rare but possible) edit independently.
+	let editedBodies = $state<Record<number, string>>({})
+	let editingPart = $state<Record<number, boolean>>({})
+	let editBuffers = $state<Record<number, string>>({})
 
-	function submitEdit() {
-		const trimmed = editText.trim()
-		if (!trimmed) return
-		onDraftAction?.('edit', trimmed)
-		editText = ''
-		editing = false
+	function startEdit(partIndex: number, currentBody: string) {
+		editBuffers[partIndex] = editedBodies[partIndex] ?? currentBody
+		editingPart[partIndex] = true
 	}
 
-	function cancelEdit() {
-		editText = ''
-		editing = false
+	function saveEdit(partIndex: number) {
+		const next = editBuffers[partIndex]?.trim()
+		if (!next) return
+		editedBodies[partIndex] = next
+		editingPart[partIndex] = false
+	}
+
+	function discardEdit(partIndex: number) {
+		delete editBuffers[partIndex]
+		delete editedBodies[partIndex]
+		editingPart[partIndex] = false
+	}
+
+	function bodyForPart(partIndex: number, fallback: string): string {
+		return editedBodies[partIndex] ?? fallback
+	}
+
+	let contactForm = $state<ContactFormFields>({
+		name: '',
+		email: '',
+		company: '',
+		intent: ''
+	})
+	// Prefill the form from the latest collect_contact_info output.fields once,
+	// when this component first sees a ready-to-render collect part. After that
+	// the form is the visitor's to type into — no further auto-overwrites.
+	let contactFormInitialized = $state(false)
+
+	$effect(() => {
+		if (contactFormInitialized || !showCollectForm) return
+		const latestCollect = parts.find(
+			(p) => p.type === 'tool-collect_contact_info' && p.state === 'output-available'
+		)
+		if (!latestCollect || latestCollect.type !== 'tool-collect_contact_info') return
+		if (latestCollect.state !== 'output-available') return
+		const fields = latestCollect.output.fields
+		contactForm = {
+			name: fields.name ?? '',
+			email: fields.email ?? '',
+			company: fields.company ?? '',
+			intent: fields.intent ?? ''
+		}
+		contactFormInitialized = true
+	})
+
+	function submitContactForm() {
+		const trimmed: ContactFormFields = {
+			name: contactForm.name.trim(),
+			email: contactForm.email.trim(),
+			company: contactForm.company.trim(),
+			intent: contactForm.intent.trim()
+		}
+		if (!trimmed.name || !trimmed.email || !trimmed.company || !trimmed.intent) return
+		onSubmitContactForm?.(trimmed)
 	}
 </script>
 
@@ -134,6 +196,80 @@
 							</span>
 						{/if}
 					</div>
+					{#if showCollectForm && !part.output.ready}
+						<form
+							data-testid="contact-form"
+							class="my-2 flex flex-col gap-2 rounded-xl border border-white/[0.08] bg-surface-900/40 p-3"
+							onsubmit={(e) => {
+								e.preventDefault()
+								submitContactForm()
+							}}
+						>
+							<label class="flex flex-col gap-1 text-[11px] text-surface-400">
+								Name
+								<input
+									data-testid="contact-name"
+									type="text"
+									required
+									maxlength="100"
+									bind:value={contactForm.name}
+									class="rounded-md border border-white/[0.08] bg-surface-950/80 px-2.5 py-1.5 text-[12px] text-surface-200 outline-none focus:border-brand-primary/40"
+								/>
+							</label>
+							<label class="flex flex-col gap-1 text-[11px] text-surface-400">
+								Email
+								<input
+									data-testid="contact-email"
+									type="email"
+									required
+									maxlength="100"
+									bind:value={contactForm.email}
+									class="rounded-md border border-white/[0.08] bg-surface-950/80 px-2.5 py-1.5 text-[12px] text-surface-200 outline-none focus:border-brand-primary/40"
+								/>
+							</label>
+							<label class="flex flex-col gap-1 text-[11px] text-surface-400">
+								Company or role
+								<input
+									data-testid="contact-company"
+									type="text"
+									required
+									maxlength="100"
+									bind:value={contactForm.company}
+									class="rounded-md border border-white/[0.08] bg-surface-950/80 px-2.5 py-1.5 text-[12px] text-surface-200 outline-none focus:border-brand-primary/40"
+								/>
+							</label>
+							<label class="flex flex-col gap-1 text-[11px] text-surface-400">
+								Reason for reaching out
+								<textarea
+									data-testid="contact-intent"
+									required
+									rows="3"
+									maxlength="500"
+									bind:value={contactForm.intent}
+									onkeydown={(e) => {
+										if (e.key === 'Enter' && !e.shiftKey) {
+											e.preventDefault()
+											e.currentTarget.form?.requestSubmit()
+										}
+									}}
+									aria-describedby="contact-intent-hint"
+									class="resize-none rounded-md border border-white/[0.08] bg-surface-950/80 px-2.5 py-1.5 text-[12px] text-surface-200 outline-none focus:border-brand-primary/40"
+								></textarea>
+								<span id="contact-intent-hint" class="text-[10px] text-surface-600">
+									Enter to submit · Shift+Enter for new line
+								</span>
+							</label>
+							<div class="flex justify-end">
+								<button
+									type="submit"
+									data-testid="contact-submit"
+									class="rounded-md bg-brand-primary px-3 py-1.5 text-[11px] font-medium text-surface-950 hover:shadow-[0_0_12px_rgba(16,185,129,0.3)]"
+								>
+									Submit
+								</button>
+							</div>
+						</form>
+					{/if}
 				{:else if part.state === 'output-error'}
 					<div class="my-1 rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1.5 text-[11px] text-red-400">
 						Error reading contact info: {part.errorText}
@@ -146,6 +282,8 @@
 						Drafting email...
 					</div>
 				{:else if part.state === 'output-available'}
+					{@const displayedBody = bodyForPart(i, part.output.body)}
+					{@const isEditing = editingPart[i] === true}
 					<div
 						data-testid="email-preview-card"
 						class="my-2 overflow-hidden rounded-xl border border-brand-primary/30 bg-surface-900/60"
@@ -160,73 +298,67 @@
 								<span class="text-surface-200">{part.output.subject}</span>
 							</div>
 						</div>
-						<div class="px-3 py-2.5 text-[12px] whitespace-pre-wrap text-surface-200">
-							{part.output.body}
-						</div>
-						{#if showDraftActions}
-							{#if editing}
-								<div class="flex flex-col gap-2 border-t border-white/[0.06] bg-white/[0.02] p-2.5">
-									<input
-										type="text"
-										bind:value={editText}
-										onkeydown={(e) => {
-											if (e.key === 'Enter') {
-												e.preventDefault()
-												submitEdit()
-											} else if (e.key === 'Escape') {
-												cancelEdit()
-											}
-										}}
-										placeholder="What would you like to change?"
-										data-testid="email-edit-input"
-										class="w-full rounded-md border border-white/[0.08] bg-surface-950/80 px-2.5 py-1.5 text-[12px] text-surface-200 outline-none focus:border-brand-primary/40"
-									/>
-									<div class="flex justify-end gap-2">
-										<button
-											type="button"
-											onclick={cancelEdit}
-											class="rounded-md px-2.5 py-1 text-[11px] text-surface-400 hover:bg-white/[0.04]"
-										>
-											Discard
-										</button>
-										<button
-											type="button"
-											onclick={submitEdit}
-											disabled={!editText.trim()}
-											class="rounded-md bg-brand-primary px-2.5 py-1 text-[11px] font-medium text-surface-950 disabled:opacity-30"
-										>
-											Apply edit
-										</button>
-									</div>
-								</div>
-							{:else}
-								<div class="flex justify-end gap-2 border-t border-white/[0.06] bg-white/[0.02] px-2.5 py-2">
+						{#if isEditing}
+							<div class="flex flex-col gap-2 border-b border-white/[0.06] bg-white/[0.02] p-2.5">
+								<textarea
+									data-testid="email-body-edit"
+									rows="10"
+									maxlength="4000"
+									bind:value={editBuffers[i]}
+									class="w-full resize-y rounded-md border border-white/[0.08] bg-surface-950/80 px-2.5 py-1.5 text-[12px] leading-relaxed text-surface-200 outline-none focus:border-brand-primary/40"
+								></textarea>
+								<div class="flex justify-end gap-2">
 									<button
 										type="button"
-										data-testid="email-action-cancel"
-										onclick={() => onDraftAction?.('cancel')}
+										data-testid="email-edit-discard"
+										onclick={() => discardEdit(i)}
 										class="rounded-md px-2.5 py-1 text-[11px] text-surface-400 hover:bg-white/[0.04]"
 									>
-										Cancel
+										Discard
 									</button>
 									<button
 										type="button"
-										data-testid="email-action-edit"
-										onclick={() => (editing = true)}
-										class="rounded-md border border-white/[0.08] px-2.5 py-1 text-[11px] text-surface-200 hover:bg-white/[0.04]"
+										data-testid="email-edit-save"
+										onclick={() => saveEdit(i)}
+										disabled={!(editBuffers[i] ?? '').trim()}
+										class="rounded-md bg-brand-primary px-2.5 py-1 text-[11px] font-medium text-surface-950 disabled:opacity-30"
 									>
-										Edit
-									</button>
-									<button
-										type="button"
-										data-testid="email-action-send"
-										onclick={() => onDraftAction?.('send')}
-										class="rounded-md bg-brand-primary px-2.5 py-1 text-[11px] font-medium text-surface-950 hover:shadow-[0_0_12px_rgba(16,185,129,0.3)]"
-									>
-										Send
+										Save
 									</button>
 								</div>
-							{/if}
+							</div>
+						{:else}
+							<div class="px-3 py-2.5 text-[12px] whitespace-pre-wrap text-surface-200">
+								{displayedBody}
+							</div>
+						{/if}
+						{#if showDraftActions && !isEditing}
+							<div class="flex justify-end gap-2 border-t border-white/[0.06] bg-white/[0.02] px-2.5 py-2">
+								<button
+									type="button"
+									data-testid="email-action-cancel"
+									onclick={() => onDraftAction?.('cancel')}
+									class="rounded-md px-2.5 py-1 text-[11px] text-surface-400 hover:bg-white/[0.04]"
+								>
+									Cancel
+								</button>
+								<button
+									type="button"
+									data-testid="email-action-edit"
+									onclick={() => startEdit(i, part.output.body)}
+									class="rounded-md border border-white/[0.08] px-2.5 py-1 text-[11px] text-surface-200 hover:bg-white/[0.04]"
+								>
+									Edit
+								</button>
+								<button
+									type="button"
+									data-testid="email-action-send"
+									onclick={() => onDraftAction?.('send', displayedBody)}
+									class="rounded-md bg-brand-primary px-2.5 py-1 text-[11px] font-medium text-surface-950 hover:shadow-[0_0_12px_rgba(16,185,129,0.3)]"
+								>
+									Send
+								</button>
+							</div>
 						{/if}
 					</div>
 				{:else if part.state === 'output-error'}
@@ -242,19 +374,18 @@
 				)}
 				<div
 					data-testid="email-stage-list"
-					class="my-2 space-y-1 rounded-xl border border-white/[0.06] bg-white/[0.02] p-2.5"
+					class="my-2 space-y-1.5 rounded-xl border border-white/[0.06] bg-white/[0.02] p-3"
 				>
 					{#each SEND_STAGE_ORDER as stageName (stageName)}
 						{@const stage = stageMap.get(stageName)}
 						{@const status = stage?.status ?? 'pending'}
-						<div class="flex items-center gap-2 text-[11px]">
-							<span class="font-mono text-surface-500">{stageName}</span>
-							<span class="text-surface-400">{SEND_STAGE_LABELS[stageName]}</span>
-							<span class="ml-auto rounded px-1.5 py-0.5 font-mono text-[10px] {STATUS_STYLES[status]}">
+						<div class="flex items-center gap-3 text-[11px]">
+							<span class="text-surface-300">{SEND_STAGE_LABELS[stageName]}</span>
+							<span class="ml-auto rounded-md px-2 py-0.5 font-mono text-[10px] {STATUS_STYLES[status]}">
 								{status}
 							</span>
-							{#if stage?.detail}
-								<span class="text-[10px] text-surface-500">{stage.detail}</span>
+							{#if status === 'failed' && stage?.detail}
+								<span class="text-[10px] text-red-300/80">{stage.detail}</span>
 							{/if}
 						</div>
 					{/each}

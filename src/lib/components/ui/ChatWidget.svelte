@@ -61,10 +61,28 @@
 		sendText(EMAIL_INTRO)
 	}
 
-	function handleDraftAction(action: 'send' | 'cancel' | 'edit', editText?: string) {
-		if (action === 'send') sendText('Send the email as drafted.')
-		else if (action === 'cancel') sendText('Cancel the email.')
-		else if (action === 'edit' && editText) sendText(`Edit: ${editText}`)
+	function handleDraftAction(action: 'send' | 'cancel', body?: string) {
+		if (action === 'send') {
+			const finalBody = (body ?? '').trim()
+			if (!finalBody) return
+			// BEGIN/END markers signal the LLM to copy the body verbatim into
+			// send_email's body parameter without any rewriting. Prefix kept
+			// short so wrapper + body stays under the chat message length cap.
+			sendText(`Send verbatim:\n---BEGIN BODY---\n${finalBody}\n---END BODY---`)
+		} else if (action === 'cancel') {
+			sendText('Cancel the email.')
+		}
+	}
+
+	function handleContactFormSubmit(fields: {
+		name: string
+		email: string
+		company: string
+		intent: string
+	}) {
+		sendText(
+			`Here are my details:\n\nName: ${fields.name}\nEmail: ${fields.email}\nCompany or role: ${fields.company}\nIntent: ${fields.intent}`
+		)
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
@@ -103,6 +121,19 @@
 			.reverse()
 			.find((m) =>
 				m.parts?.some((p) => p.type === 'tool-draft_email' && p.state === 'output-available')
+			)?.id
+	)
+
+	// Most-recent message containing an output-available collect_contact_info part.
+	// The inline contact form renders only on this message's chip when chat is idle,
+	// so older collect chips in history stay read-only.
+	let lastCollectMessageId = $derived(
+		[...chat.messages]
+			.reverse()
+			.find((m) =>
+				m.parts?.some(
+					(p) => p.type === 'tool-collect_contact_info' && p.state === 'output-available'
+				)
 			)?.id
 	)
 
@@ -208,8 +239,10 @@
 						metadata={message.role === 'assistant' ? message.metadata : undefined}
 						showFollowUps={message.id === lastAssistantId && !isActive}
 						showDraftActions={message.id === lastDraftMessageId && !isActive}
+						showCollectForm={message.id === lastCollectMessageId && !isActive}
 						onSourceClick={handleSourceClick}
 						onSuggestionClick={sendText}
+						onSubmitContactForm={handleContactFormSubmit}
 						onDraftAction={handleDraftAction}
 					/>
 				{/each}

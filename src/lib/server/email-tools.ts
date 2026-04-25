@@ -16,8 +16,27 @@ import {
 const EMAIL_RATE_LIMIT = 3
 const EMAIL_RATE_WINDOW_MS = 60 * 60 * 1000 // 1 hour
 
+// Truncate at the last sentence/paragraph break under maxChars so the body
+// still ends cleanly. Falls back to a hard slice if no break fits.
+function capBody(body: string, maxChars: number): string {
+	if (body.length <= maxChars) return body
+	const slice = body.slice(0, maxChars)
+	const breakIdx = Math.max(slice.lastIndexOf('\n\n'), slice.lastIndexOf('. '), slice.lastIndexOf('! '), slice.lastIndexOf('? '))
+	if (breakIdx > maxChars * 0.5) {
+		const cut = slice.slice(0, breakIdx + 1).trimEnd()
+		return cut.endsWith('.') || cut.endsWith('!') || cut.endsWith('?') ? cut : `${cut}.`
+	}
+	return `${slice.trimEnd()}…`
+}
+
 type StageName = EmailStage['stageName']
 type StageStatus = EmailStage['status']
+
+// Body cap. The visitor confirms by clicking Send, which wraps this body in
+// BEGIN/END markers and posts it back through the chat endpoint, so the wrapped
+// payload must stay under MAX_MESSAGE_LENGTH (500 chars). Wrapper overhead is
+// ~47 chars; 400 chars leaves a comfortable safety margin.
+const MAX_DRAFT_BODY_CHARS = 400
 
 const DRAFT_SYSTEM_PROMPT = `You are drafting a polite, professional outreach email FROM a website visitor TO Wen Fang.
 
@@ -27,8 +46,8 @@ Rules you must always follow:
 - Open with a short greeting ("Hi Wen,").
 - Mention the visitor's company/role and the reason for reaching out, naturally.
 - Keep the tone polite, direct, and professional. No flattery, no exclamation points.
-- Length: 80–180 words.
-- Close with a sign-off using the visitor's name.
+- Length: 50-70 words. Hard maximum: ${MAX_DRAFT_BODY_CHARS} characters total. Stay under this limit.
+- Close with a short sign-off using the visitor's name.
 - Do not include a subject line. Do not invent facts that aren't in the input.
 - Output the body text only, no preamble, no quotes, no markdown.`
 
@@ -88,14 +107,18 @@ Company or role: ${input.company}
 Reason for reaching out: ${input.intent}
 </visitor_input>
 
-Write the email body now.`,
-					maxOutputTokens: 400
+Write the email body now. Stay under ${MAX_DRAFT_BODY_CHARS} characters.`,
+					maxOutputTokens: 130
 				})
 
-				const body = result.text.trim()
-				if (!body) {
+				const rawBody = result.text.trim()
+				if (!rawBody) {
 					throw new Error('Drafted email body was empty')
 				}
+
+				// Hard cap. If the model overshoots, truncate at the last sentence
+				// or paragraph break under the limit so the body still ends cleanly.
+				const body = capBody(rawBody, MAX_DRAFT_BODY_CHARS)
 
 				return {
 					subject: buildSubject(input.name, input.intent),

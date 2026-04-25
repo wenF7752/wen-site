@@ -8,7 +8,10 @@ export type SendContactEmailResult =
 	| { ok: false; error: { name: string; message: string } }
 
 const RECIPIENT = 'me@wenfang.dev'
-const FROM = 'me@wenfang.dev'
+// Different local part from RECIPIENT. Self-from (From == To) on a domain that
+// forwards via Cloudflare Email Routing breaks DKIM alignment on the forwarded
+// hop and trips spam filters at the destination mailbox.
+const FROM = 'contact@wenfang.dev'
 const SUBJECT_PREFIX = '[Portfolio Contact]'
 const MAX_INTENT_IN_SUBJECT = 60
 const MAX_SUBJECT_TOTAL = 120
