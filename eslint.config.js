@@ -34,6 +34,6 @@ export default ts.config(
 		}
 	},
 	{
-		ignores: ['build/', '.svelte-kit/', '.vercel/', 'node_modules/']
+		ignores: ['build/', '.svelte-kit/', '.vercel/', 'node_modules/', 'research/']
 	}
 );

@@ -3,75 +3,78 @@ import type { RequestHandler } from './$types'
 import { createOpenAI } from '@ai-sdk/openai'
 import {
 	streamText,
+	stepCountIs,
+	convertToModelMessages,
 	createUIMessageStream,
 	createUIMessageStreamResponse,
+	type UIMessage,
 	type UIMessageStreamWriter
 } from 'ai'
 import { z } from 'zod/v4'
 import { env } from '$env/dynamic/private'
 import { embedQuery, retrieveContext, buildSystemPrompt } from '$lib/server/rag'
 import { isGreeting, getGreetingResponse, getSuggestedFollowUps } from '$lib/server/query-router'
+import { checkRate } from '$lib/server/rate-limit'
+import { createEmailTools } from '$lib/server/email-tools'
 import type { ChatMessageMetadata } from '$lib/types/chat'
 
 // --- Abuse prevention constants ---
-const RATE_LIMIT = 10 // requests per window per IP
-const RATE_WINDOW = 60 * 1000 // 1 minute
-const MAX_MESSAGE_LENGTH = 500 // chars per user message
-const MAX_CONVERSATION_LENGTH = 10 // max messages in history
-const MAX_REQUEST_MESSAGES = 100 // hard cap on payload size; server still slices to MAX_CONVERSATION_LENGTH
-const MAX_OUTPUT_TOKENS = 300 // cap LLM response cost
+const MAX_MESSAGE_LENGTH = 500
+const MAX_CONVERSATION_LENGTH = 10
+// Hard cap on incoming payload size; the server still slices to MAX_CONVERSATION_LENGTH.
+const MAX_REQUEST_MESSAGES = 100
+// Sized for multi-step tool flows (draft + send), not just a single text reply.
+const MAX_OUTPUT_TOKENS = 800
+const MAX_TOOL_STEPS = 8
 
+// Loose schema: top-level shape is validated, but message/part objects pass through
+// extra fields (id, metadata, tool-call/tool-result fields) so convertToModelMessages
+// can reconstruct the full UI message — including tool history — for the model.
 const chatRequestSchema = z.object({
 	messages: z
 		.array(
-			z.object({
+			z.looseObject({
+				id: z.string(),
 				role: z.enum(['user', 'assistant', 'system']),
-				parts: z
-					.array(
-						z.object({
-							type: z.string(),
-							text: z.string().optional()
-						})
-					)
-					.optional()
+				parts: z.array(z.looseObject({ type: z.string() })).optional()
 			})
 		)
 		.min(1)
 		.max(MAX_REQUEST_MESSAGES)
 })
 
-// In-memory rate limiting (best-effort on serverless)
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
-
-function checkRateLimit(ip: string): boolean {
-	const now = Date.now()
-	const entry = rateLimitMap.get(ip)
-
-	if (!entry || now > entry.resetAt) {
-		rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW })
-		return true
-	}
-
-	if (entry.count >= RATE_LIMIT) {
-		return false
-	}
-
-	entry.count++
-	return true
-}
-
 type ChatRequestMessage = z.infer<typeof chatRequestSchema>['messages'][number]
 
-// Convert UI messages (parts format) to model messages (content format)
-function toModelMessages(uiMessages: ChatRequestMessage[]) {
-	return uiMessages.map((msg) => {
-		const text =
-			msg.parts
-				?.filter((p) => p.type === 'text')
-				.map((p) => p.text ?? '')
-				.join('') || ''
-		return { role: msg.role as 'user' | 'assistant', content: text }
-	})
+function extractLastUserText(messages: ChatRequestMessage[]): string {
+	for (let i = messages.length - 1; i >= 0; i--) {
+		const msg = messages[i]
+		if (msg.role !== 'user') continue
+		const text = (msg.parts ?? [])
+			.filter((p): p is { type: 'text'; text?: string } => p.type === 'text')
+			.map((p) => p.text ?? '')
+			.join('')
+		return text
+	}
+	return ''
+}
+
+const EMAIL_TOOL_PART_TYPES = [
+	'tool-collect_contact_info',
+	'tool-draft_email',
+	'tool-send_email'
+]
+
+// Detect whether an email-tool call has already happened in prior turns. When true,
+// the low-confidence Path B short-circuit is suppressed so the email flow is not
+// interrupted by a decline message on a turn whose embedding score is weak.
+function isEmailModeActive(messages: ChatRequestMessage[]): boolean {
+	for (const msg of messages) {
+		if (msg.role !== 'assistant') continue
+		for (const part of msg.parts ?? []) {
+			if (EMAIL_TOOL_PART_TYPES.includes(part.type)) return true
+		}
+	}
+	return false
 }
 
 function writeManualMessage(
@@ -87,10 +90,27 @@ function writeManualMessage(
 	writer.write({ type: 'finish', messageMetadata: metadata })
 }
 
+// Always emit a terminal `finish` chunk, even when the execute IIFE throws.
+// Without this guard the client hangs in `streaming` state because the stream
+// closes without a sentinel. Reference:
+// ~/.claude/knowledge/debugging-readable-stream-async-iife-swallows-errors.md
+function writeTerminalErrorFinish(
+	writer: UIMessageStreamWriter,
+	err: unknown,
+	baseMetadata: ChatMessageMetadata
+) {
+	console.error('[chat] terminal finish on error', err)
+	const message = err instanceof Error ? err.message : 'Unknown error'
+	writer.write({
+		type: 'finish',
+		messageMetadata: { ...baseMetadata, error: { message } }
+	})
+}
+
 export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 	// Rate limiting
 	const clientIp = getClientAddress()
-	if (!checkRateLimit(clientIp)) {
+	if (!checkRate('chat', clientIp, 10, 60_000)) {
 		return json({ error: 'Too many requests. Please try again in a minute.' }, { status: 429 })
 	}
 
@@ -110,24 +130,18 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 		const { messages } = parsed.data
 		const recentMessages = messages.slice(-MAX_CONVERSATION_LENGTH)
 
-		// Convert UI messages to model messages
-		const modelMessages = toModelMessages(recentMessages)
-
-		// Get latest user query text for RAG
-		const lastUserMsg = modelMessages.filter((m) => m.role === 'user').pop()
-		if (!lastUserMsg || !lastUserMsg.content) {
+		const query = extractLastUserText(recentMessages)
+		if (!query) {
 			return json({ error: 'No user message found.' }, { status: 400 })
 		}
 
 		// Reject overly long messages
-		if (lastUserMsg.content.length > MAX_MESSAGE_LENGTH) {
+		if (query.length > MAX_MESSAGE_LENGTH) {
 			return json(
 				{ error: `Message too long. Please keep it under ${MAX_MESSAGE_LENGTH} characters.` },
 				{ status: 400 }
 			)
 		}
-
-		const query = lastUserMsg.content
 
 		// Path A: Greeting -- no LLM call
 		if (isGreeting(query)) {
@@ -138,7 +152,11 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 			}
 			const stream = createUIMessageStream({
 				execute: ({ writer }) => {
-					writeManualMessage(writer, getGreetingResponse(), metadata)
+					try {
+						writeManualMessage(writer, getGreetingResponse(), metadata)
+					} catch (err) {
+						writeTerminalErrorFinish(writer, err, metadata)
+					}
 				}
 			})
 			return createUIMessageStreamResponse({ stream })
@@ -148,8 +166,11 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 		const queryEmbedding = await embedQuery(query)
 		const retrieval = await retrieveContext(queryEmbedding)
 
-		// Path B: Low confidence -- polite decline, no LLM call
-		if (retrieval.confidence === 'low') {
+		// Path B: Low confidence -- polite decline, no LLM call.
+		// Suppressed when email-mode is active: a low-similarity reply mid-flow
+		// (e.g. "my email is x@y.com") would otherwise interrupt the email flow
+		// with a generic decline.
+		if (retrieval.confidence === 'low' && !isEmailModeActive(recentMessages)) {
 			const metadata: ChatMessageMetadata = {
 				confidence: 'low',
 				sources: retrieval.categories,
@@ -159,7 +180,11 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 				"I don't have enough information to answer that confidently. I'm best at questions about Wen's AI workflow, technical skills, projects, and engineering philosophy. Try one of the suggestions below!"
 			const stream = createUIMessageStream({
 				execute: ({ writer }) => {
-					writeManualMessage(writer, declineText, metadata)
+					try {
+						writeManualMessage(writer, declineText, metadata)
+					} catch (err) {
+						writeTerminalErrorFinish(writer, err, metadata)
+					}
 				}
 			})
 			return createUIMessageStreamResponse({ stream })
@@ -179,29 +204,38 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 
 		const stream = createUIMessageStream({
 			execute: async ({ writer }) => {
-				writer.write({ type: 'start', messageMetadata: metadata })
+				try {
+					writer.write({ type: 'start', messageMetadata: metadata })
 
-				const result = streamText({
-					model: moonshot.chat('kimi-k2-turbo-preview'),
-					system: systemPrompt,
-					messages: modelMessages,
-					maxOutputTokens: MAX_OUTPUT_TOKENS
-				})
+					const tools = createEmailTools(writer, clientIp)
+					const modelMessages = await convertToModelMessages(recentMessages as UIMessage[])
 
-				writer.merge(
-					result.toUIMessageStream({ sendStart: false, sendFinish: false })
-				)
+					const result = streamText({
+						model: moonshot.chat('kimi-k2-turbo-preview'),
+						system: systemPrompt,
+						messages: modelMessages,
+						tools,
+						stopWhen: stepCountIs(MAX_TOOL_STEPS),
+						maxOutputTokens: MAX_OUTPUT_TOKENS
+					})
 
-				// Wait for LLM stream to complete before sending finish with metadata
-				await result.text
-				const finishReason = await result.finishReason
-				if (finishReason === 'length') {
-					const noteId = crypto.randomUUID()
-					writer.write({ type: 'text-start', id: noteId })
-					writer.write({ type: 'text-delta', id: noteId, delta: '\n\n_(response truncated)_' })
-					writer.write({ type: 'text-end', id: noteId })
+					writer.merge(
+						result.toUIMessageStream({ sendStart: false, sendFinish: false })
+					)
+
+					// Wait for LLM stream to complete before sending finish with metadata
+					await result.text
+					const finishReason = await result.finishReason
+					if (finishReason === 'length') {
+						const noteId = crypto.randomUUID()
+						writer.write({ type: 'text-start', id: noteId })
+						writer.write({ type: 'text-delta', id: noteId, delta: '\n\n_(response truncated)_' })
+						writer.write({ type: 'text-end', id: noteId })
+					}
+					writer.write({ type: 'finish', messageMetadata: metadata })
+				} catch (err) {
+					writeTerminalErrorFinish(writer, err, metadata)
 				}
-				writer.write({ type: 'finish', messageMetadata: metadata })
 			}
 		})
 
