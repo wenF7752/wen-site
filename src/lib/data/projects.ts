@@ -2,6 +2,8 @@ export interface Project {
 	title: string;
 	description: string;
 	link: string;
+	liveUrl?: string;
+	previewImage?: string;
 	tags: string[];
 	aiHighlight?: string;
 	status?: 'live' | 'in-progress' | 'archived';
@@ -18,11 +20,14 @@ export const projects: Project[] = [
 		status: 'live'
 	},
 	{
-		title: 'Coming Soon',
+		title: 'Omabite',
 		description:
-			'Next AI project in progress. Check back soon for updates on RAG pipelines, agent orchestration, or prompt engineering toolkits.',
-		link: '#',
-		tags: ['AI', 'In Progress'],
-		status: 'in-progress'
+			'A wizard-driven dish picker for UberEats. Five short steps land you on one specific dish at one specific restaurant, with reasoned "why this" and a deep link to order. A single SSE pipeline orchestrates Brave search, Apify menu scraping, and Kimi ranking, then validates the pick against the menu and the user\'s allergens.',
+		link: 'https://github.com/wenF7752/Omakai',
+		liveUrl: 'https://omabite.food',
+		previewImage: '/projects/omabite.png',
+		tags: ['Next.js 16', 'React 19', 'TypeScript', 'Zod 4', 'SSE Pipeline'],
+		aiHighlight: 'Streamed multi-stage pipeline: search → shortlist → menu → dish pick, with graceful degradation',
+		status: 'live'
 	}
 ];
