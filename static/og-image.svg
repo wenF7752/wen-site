@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+	<defs>
+		<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+			<stop offset="0%" stop-color="#0a0a0a"/>
+			<stop offset="100%" stop-color="#111827"/>
+		</linearGradient>
+		<linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+			<stop offset="0%" stop-color="#10b981"/>
+			<stop offset="100%" stop-color="#34d399"/>
+		</linearGradient>
+		<radialGradient id="glow" cx="0.2" cy="0.2" r="0.5">
+			<stop offset="0%" stop-color="#10b981" stop-opacity="0.18"/>
+			<stop offset="100%" stop-color="#10b981" stop-opacity="0"/>
+		</radialGradient>
+	</defs>
+
+	<rect width="1200" height="630" fill="url(#bg)"/>
+	<rect width="1200" height="630" fill="url(#glow)"/>
+
+	<g transform="translate(80, 80)">
+		<rect width="14" height="14" rx="3" fill="url(#accent)"/>
+		<text x="28" y="13" font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="14" fill="#a3a3a3" letter-spacing="2">SYSTEM ONLINE</text>
+	</g>
+
+	<g transform="translate(80, 260)">
+		<text font-family="ui-sans-serif, Inter, system-ui, sans-serif" font-size="92" font-weight="800" fill="#fafafa" letter-spacing="-2">Wen Fang</text>
+		<text y="78" font-family="ui-sans-serif, Inter, system-ui, sans-serif" font-size="44" font-weight="600" fill="url(#accent)" letter-spacing="-0.5">AI-Native Fullstack Developer</text>
+		<text y="138" font-family="ui-sans-serif, Inter, system-ui, sans-serif" font-size="26" font-weight="400" fill="#a3a3a3">Building production systems with agentic AI workflows.</text>
+	</g>
+
+	<g transform="translate(80, 530)">
+		<text font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="18" fill="#71717a" letter-spacing="1.5">PHOENIX, AZ</text>
+	</g>
+
+	<g transform="translate(1120, 550)" text-anchor="end">
+		<text font-family="ui-monospace, 'JetBrains Mono', monospace" font-size="22" fill="#10b981" letter-spacing="1">wenfang.dev</text>
+	</g>
+</svg>
