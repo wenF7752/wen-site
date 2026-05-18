@@ -1,0 +1,148 @@
+# Wen Fang — Full Knowledge Base
+
+Source for AI ingestion. Reorganized from the curated content chunks that also power the on-site RAG chatbot at https://wenfang.dev/. Everything here is public and citation-friendly.
+
+---
+
+## Identity
+
+Wen Fang is a Full-Stack Developer specializing in AI-native development workflows. He is based in Phoenix, Arizona, USA. He builds production systems using AI-assisted architecture, agent orchestration, and modern web technologies. His approach combines deep technical skill with deliberate AI integration, where human judgment drives every decision.
+
+## Engineering Philosophy
+
+Wen's development philosophy is rooted in "tacit knowledge" inspired by Michael Polanyi: skill is demonstrated through the artifact, not by listing credentials. His portfolio site itself is the proof of his capabilities. The code quality, design decisions, and technical choices all reflect engineering maturity.
+
+Wen follows a research-first, plan-in-markdown, execute-mechanically workflow. For non-trivial tasks, he writes findings to research files, creates detailed plans with assumptions, constraints, and verification strategies, then implements mechanically while marking progress. If an approach fails, he reverts and re-plans rather than patching.
+
+He practices critical evaluation of AI-generated output. He believes in using AI to amplify engineering judgment, not replace it. Every AI suggestion is validated against requirements, tested for edge cases, and reviewed for security implications before acceptance.
+
+## AI Workflow — Four Phases
+
+### 1. Architect
+Wen uses AI as a thinking partner for system design, tradeoff analysis, and architecture planning. Context engineering and structured prompts ensure the AI produces grounded, useful output.
+
+### 2. Build
+Wen uses agent orchestration to decompose features into parallel AI-ready tasks. Multiple coding agents work simultaneously while he reviews and synthesizes their output. Human oversight is maintained at every merge point.
+
+### 3. Validate
+The Validate phase combines AI-powered code review with automated quality gates. Harness engineering provides pre and post-action hooks that catch lint errors, type issues, and regressions automatically. AI reviews complex pull requests, but final judgment is always human.
+
+### 4. Ship
+CI/CD pipelines with AI-driven quality gates ensure production confidence. Automated build verification, static analysis, and deployment pipelines catch issues before they reach production. AI-assisted monitoring helps detect anomalies early.
+
+## AI Engineering Skills
+
+**Agent Orchestration** — coordinating multi-agent systems, task decomposition, parallel delegation.
+
+**Context Engineering** — system prompt architecture, RAG pipeline design, MCP integration.
+
+**AI-Assisted Architecture** — AI-driven system design, codebase-wide refactors, automated scaffolding.
+
+**Harness Engineering** — building runtime layers around AI agents with hooks, evaluation mechanisms, safety controls, and CI/CD integration.
+
+**Prompt Engineering** — chain-of-thought and few-shot prompt design, evaluation, regression testing, domain-specific prompt libraries.
+
+**Agentic Workflow Design** — research-plan-execute development cycles, delegate-review-own operating models.
+
+## Tech Stack
+
+- **Languages**: TypeScript, JavaScript, Python, Java, C++, C#, Bash.
+- **Application frameworks**: React, Svelte and SvelteKit, Node.js, Express, NestJS.
+- **Data**: PostgreSQL, MySQL, MongoDB.
+- **Infrastructure**: Docker, CI/CD pipelines, AWS, Azure DevOps, Vercel, Supabase, Nomad, Git.
+- **AI-assisted development**: Claude Code, Codex, Cursor, Lovable, Bolt. Spec-first development, AI-assisted TDD, Agile and Scrum practice, Retrieval-Augmented Generation patterns.
+
+Wen's primary stack for personal projects: SvelteKit, TypeScript, Node.js, Tailwind CSS, and PostgreSQL. He uses Svelte 5 with the runes API exclusively and follows strict type-safety practices with TypeScript in strict mode.
+
+## Projects
+
+### AI-Native Portfolio (this site)
+
+Live: https://wenfang.dev/
+
+A meta-demonstration of Wen's AI workflow. The entire site was built using AI-assisted development: architecture planned by coding agents, implemented with AI-augmented editors, and validated through automated hooks. Stack: SvelteKit 2, Svelte 5 (runes API exclusively), TypeScript in strict mode, Tailwind CSS v4. Deployed to Vercel with Node.js 22.
+
+The site features a RAG-powered chatbot that demonstrates Retrieval-Augmented Generation in production. It uses Supabase pgvector for semantic search, OpenAI text-embedding-3-small for vectorization (1536-dimensional embeddings), and Moonshot Kimi (kimi-k2-turbo-preview) via an OpenAI-compatible API for response generation. Visitors can ask questions about Wen's experience and get grounded, accurate answers.
+
+#### RAG pipeline detail
+
+The pipeline follows a precise flow: user message arrives via POST /api/chat, the server extracts the latest user message, enforces rate limiting (10 requests per minute per IP), validates message length (500 chars max) and conversation length (10 messages max). The query is then embedded using OpenAI text-embedding-3-small, and the embedding is used to search Supabase pgvector via a match_documents RPC function using cosine similarity.
+
+#### Agentic routing
+
+The agentic routing system classifies every incoming query into one of three paths before deciding how to respond. **Path A** handles greetings (detected via regex pattern matching for hi, hello, hey, etc.) and returns a canned welcome message with suggested follow-up questions — no LLM call or embedding needed. **Path B** handles low-confidence queries where the top retrieval similarity score is below 0.25, returning a polite decline with dynamically generated follow-up suggestions — again no LLM call. **Path C** handles medium and high confidence queries (similarity >= 0.25) by streaming an LLM response with full RAG context.
+
+#### Confidence scoring
+
+Confidence is computed from the top similarity score returned by pgvector cosine search. A score of 0.45 or higher maps to high confidence, 0.25 to 0.45 maps to medium confidence, and below 0.25 maps to low confidence. This three-tier system prevents the LLM from hallucinating on off-topic questions (low confidence gets declined) while still providing helpful answers when context is available. Each response carries metadata including the confidence level, source categories, and optional suggested follow-up questions.
+
+#### Streaming protocol
+
+The chat API uses the Vercel AI SDK's manual stream control via createUIMessageStream and createUIMessageStreamResponse. For greeting and low-confidence paths, the server constructs stream chunks manually (start, text-start, text-delta, text-end, finish) with message metadata attached. For LLM paths, it writes a start chunk with metadata, merges the streamText result (with sendStart and sendFinish disabled), waits for the LLM stream to complete, then writes its own finish chunk with metadata. This gives full control over what metadata reaches the client.
+
+#### Database layer
+
+Supabase with the pgvector extension. A single documents table stores id (bigserial), content (text), metadata (jsonb with category and source fields), embedding (vector with 1536 dimensions matching OpenAI text-embedding-3-small output), and created_at (timestamptz). An IVFFlat index with 100 lists on the embedding column using cosine_ops enables fast approximate nearest neighbor search. A match_documents RPC function performs the similarity search with configurable threshold and result count.
+
+#### Ingestion pipeline
+
+The content ingestion pipeline is a standalone CLI script (scripts/ingest.ts) that runs outside SvelteKit using dotenv for environment variables. It reads curated content chunks from portfolio-content.ts, clears existing documents from Supabase, batch-embeds all chunk texts via the OpenAI embeddings API, then bulk-inserts rows with content, metadata, and embeddings. Content chunks are manually curated rather than auto-chunked, with each chunk focused on a single topic for optimal retrieval precision.
+
+#### Client-side implementation
+
+The portfolio chatbot's client uses Svelte 5 runes exclusively with the Vercel AI SDK's Chat class. Chat is typed with a generic UIMessage parameterized by ChatMessageMetadata (confidence level, source categories, suggested follow-ups). A Zod schema validates incoming metadata. The UI renders confidence badges (color-coded green/yellow/red), clickable source chips that scroll to relevant page sections, and follow-up suggestion buttons. A thinking indicator shows labeled states ("Analyzing query..." then "Generating response...") derived from the chat status.
+
+### Omabite
+
+Live: https://omabite.food
+Source: https://github.com/wenF7752/Omakai
+
+A wizard-driven dish picker for UberEats. Five short steps land you on one specific dish at one specific restaurant, with reasoned "why this" and a deep link to order. A single SSE pipeline orchestrates Brave search, Apify menu scraping, and Kimi ranking, then validates the pick against the menu and the user's allergens.
+
+Stack: Next.js 16, React 19, TypeScript, Zod 4, SSE Pipeline. AI highlight: streamed multi-stage pipeline (search → shortlist → menu → dish pick) with graceful degradation.
+
+## Engineering Approach
+
+### Research-Plan-Execute Workflow
+
+Wen's engineering approach for non-trivial projects follows a strict research-plan-execute workflow. Every feature starts with a research phase where findings are written to research/ markdown files. Then a detailed plan is written in plans/ with restated problem, assumptions, constraints, files affected, data flow model, and verification strategy. Only after the plan is reviewed and approved does implementation begin, executed mechanically with each task checked off as completed.
+
+### Harness Engineering
+
+The project uses harness engineering to maintain code quality during AI-assisted development. A PostToolUse hook runs ESLint automatically on every file edit (TypeScript, JavaScript, and Svelte files), catching lint errors immediately. The CLAUDE.md file encodes project conventions, hard rules, and learned rules that accumulate over sessions. When a mistake happens, the root cause is identified, a fix is encoded as a rule in CLAUDE.md, and the change is logged to a harness changelog. This creates a feedback loop that prevents the same mistakes from recurring.
+
+### Context Engineering
+
+Context engineering is central to how Wen builds with AI. The CLAUDE.md file serves as a structured context document that includes project overview, architecture, conventions, environment variables, file structure, known gotchas, and hard rules. This ensures every AI coding session starts with accurate, comprehensive context about the codebase. The file is maintained as living documentation that evolves with the project rather than a static reference.
+
+## Experience
+
+### Current — Full-Stack Developer (2023–present)
+
+Wen is currently a Full-Stack Developer at an education technology company in Phoenix, Arizona. He has 3+ years shipping production web apps and works at the frontier of AI-assisted development, getting real leverage out of LLMs in daily engineering by designing workflows, writing precise specs, and orchestrating agents to ship features faster without sacrificing quality.
+
+He architects AI-assisted development harnesses, custom agent profiles, MCP tool integrations, and phase-gated workflows that keep LLM output tightly aligned with requirements instead of drifting into confident hallucination. He turns vague product asks into typed specs and testable contracts before code gets written, through deliberate context engineering. The result is fewer iterations, cleaner pull requests, and predictable delivery.
+
+He ships LLM-powered product features end-to-end: custom chatbots, RAG pipelines over domain data, streaming UX with completion-vs-truncation protocols, and output-contract validation that surfaces drift as warnings rather than silent corrections. He maintains a cross-session knowledge base that feeds agents hard-won debugging patterns (streaming protocols, effect races, LLM output validation, cache invariants), so AI tools learn from past mistakes instead of re-solving them.
+
+He builds SvelteKit applications end-to-end for thousands of students: Svelte 5 rune state models, server-side rendering, Azure AD JWT + LDAP authentication, accessible mobile-first UI, MSSQL stored procedures behind pooled connection wrappers, and Docker + Azure Pipelines CI/CD across dev, QA, and prod environments. He is the go-to teammate for AI tooling adoption and for debugging non-obvious concurrency, streaming, and LLM-boundary failures.
+
+### Prior — Full-Stack Developer (2022–2023)
+
+Worked on a production NFT marketplace built with Next.js, React, and Node.js. Owned the stack from API design to frontend rendering strategy. Supported a live launch event with hundreds of concurrent users competing for a timed NFT drop. Cut perceived page load times by around 40% through static site generation on hot paths, dynamic route restructuring, and hover-triggered data pre-fetch.
+
+### Earlier — Frontend Web Developer (2017–2018)
+
+Shipped a Request-a-Quote flow (JavaScript, Node.js with Express, SMTP) that doubled lead generation.
+
+## Education
+
+B.S. in Computer Science (2018–2023), Tempe, Arizona. Coursework covered data structures, algorithms, web development, and database management.
+
+## Contact
+
+- **Email**: me@wenfang.dev
+- **Site**: https://wenfang.dev/
+- **GitHub**: https://github.com/wenF7752
+- **LinkedIn**: https://www.linkedin.com/in/wenf7752/
+- **X**: https://x.com/WenTradeFuture

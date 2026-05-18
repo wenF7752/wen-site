@@ -1,0 +1,60 @@
+# Wen Fang — AI-Native Fullstack Developer
+
+> Wen Fang is an AI-native fullstack developer based in Phoenix, Arizona. He builds production web systems with agentic AI workflows, combining deep technical skill with deliberate AI integration where human judgment drives every decision. This site is his personal portfolio: projects, the AI workflow he uses to ship them, and a RAG-powered chatbot you can ask about his experience.
+
+## About
+
+- [Home](https://wenfang.dev/): Single-page portfolio covering hero, AI workflow, projects, experience, and contact.
+- Location: Phoenix, Arizona, USA. Open to remote roles.
+- Languages: English.
+
+## What Wen Does
+
+- AI-native software development with agent orchestration, context engineering, and harness engineering.
+- Production RAG pipelines using Supabase pgvector, OpenAI embeddings, and OpenAI-compatible LLM endpoints.
+- Full-stack SvelteKit + TypeScript apps with strict type safety and runes-only Svelte 5.
+- Harness engineering: runtime layers around AI agents with hooks, evaluations, safety controls, and CI/CD integration.
+
+## Projects
+
+- [AI-Native Portfolio (this site)](https://wenfang.dev/): SvelteKit 2 + Svelte 5 runes + Tailwind v4. Includes a RAG chatbot using Moonshot Kimi (kimi-k2-turbo-preview) for generation and OpenAI text-embedding-3-small for retrieval. Meta-demonstration: built BY the AI workflow it showcases. Deployed to Vercel on Node.js 22.
+- [Omabite](https://omabite.food) — [source](https://github.com/wenF7752/Omakai): Wizard-driven dish picker for UberEats. Five short steps land you on one specific dish at one specific restaurant with reasoned "why this" and a deep link to order. Single SSE pipeline orchestrates Brave search, Apify menu scraping, and Kimi ranking, then validates the pick against the menu and allergens. Next.js 16, React 19, TypeScript, Zod 4.
+
+## AI Workflow
+
+Wen's four-phase pipeline. See [/#ai-workflow](https://wenfang.dev/#ai-workflow).
+
+1. **Architect** — AI as thinking partner for system design and tradeoff analysis. Context engineering and structured prompts keep output grounded.
+2. **Build** — Agent orchestration decomposes features into parallel AI-ready tasks. Human oversight at every merge point.
+3. **Validate** — AI-powered code review combined with automated quality gates and pre/post-action hooks. Final judgment is human.
+4. **Ship** — CI/CD pipelines with AI-driven quality gates. AI-assisted monitoring catches anomalies early.
+
+## Tech Stack
+
+- **Languages**: TypeScript, JavaScript, Python, Java, C++, C#, Bash.
+- **Frameworks**: React, Svelte / SvelteKit, Node.js, Express, NestJS.
+- **Data**: PostgreSQL, MySQL, MongoDB, Supabase pgvector.
+- **Infra**: Docker, AWS, Azure DevOps, Vercel, Nomad, Git.
+- **AI tooling**: Claude Code, Codex, Cursor, Lovable, Bolt. Spec-first development, AI-assisted TDD, RAG patterns.
+
+## Experience
+
+- **2023–present** — Full-Stack Developer at an education technology company in Phoenix, Arizona. Architects AI-assisted development harnesses, custom agent profiles, MCP tool integrations, and phase-gated workflows. Ships LLM-powered features end-to-end (custom chatbots, RAG over domain data, streaming UX).
+- **2022–2023** — Full-Stack Developer on a production NFT marketplace (Next.js, React, Node.js). Owned API design through frontend rendering. Cut perceived page load times ~40% via SSG on hot paths and hover-triggered pre-fetch.
+- **2017–2018** — Frontend Web Developer. Shipped a Request-a-Quote flow (JS, Express, SMTP) that doubled lead generation.
+
+## Education
+
+- B.S. in Computer Science (2018–2023), Tempe, Arizona.
+
+## Contact
+
+- **Email**: me@wenfang.dev
+- **GitHub**: https://github.com/wenF7752
+- **LinkedIn**: https://www.linkedin.com/in/wenf7752/
+- **X**: https://x.com/WenTradeFuture
+
+## Optional
+
+- [llms-full.txt](https://wenfang.dev/llms-full.txt): Comprehensive markdown dump of all background, workflow, project architecture, and engineering approach details. Same source that powers the on-site RAG chatbot.
+- [sitemap.xml](https://wenfang.dev/sitemap.xml)
