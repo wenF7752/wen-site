@@ -63,7 +63,7 @@ export const portfolioContent: ContentChunk[] = [
 		metadata: { source: 'projects', category: 'projects' }
 	},
 	{
-		text: `The portfolio features a RAG-powered chatbot that demonstrates Retrieval-Augmented Generation in production. It uses Supabase pgvector for semantic search, OpenAI text-embedding-3-small for vectorization (1536-dimensional embeddings), and Moonshot Kimi (kimi-k2-turbo-preview) via an OpenAI-compatible API for response generation. Visitors can ask questions about Wen's experience and get grounded, accurate answers.`,
+		text: `The portfolio features a RAG-powered chatbot that demonstrates Retrieval-Augmented Generation in production. It uses Supabase pgvector for semantic search, OpenAI text-embedding-3-small for vectorization (1536-dimensional embeddings), and Moonshot Kimi (kimi-k2.6) via an OpenAI-compatible API for response generation. Visitors can ask questions about Wen's experience and get grounded, accurate answers.`,
 		metadata: { source: 'projects', category: 'projects' }
 	},
 

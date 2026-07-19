@@ -211,7 +211,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 					const modelMessages = await convertToModelMessages(recentMessages as UIMessage[])
 
 					const result = streamText({
-						model: moonshot.chat('kimi-k2-turbo-preview'),
+						model: moonshot.chat('kimi-k2.6'),
 						system: systemPrompt,
 						messages: modelMessages,
 						tools,
