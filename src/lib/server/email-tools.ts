@@ -99,7 +99,7 @@ export function createEmailTools(writer: UIMessageStreamWriter, ip: string) {
 				})
 
 				const result = await generateText({
-					model: moonshot.chat('kimi-k2-turbo-preview'),
+					model: moonshot.chat('kimi-k2.6'),
 					system: DRAFT_SYSTEM_PROMPT,
 					prompt: `<visitor_input>
 Name: ${input.name}
